@@ -14,13 +14,22 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing dataset_id or file_url' }, { status: 400 });
     }
 
-    // Update dataset status
+    // Update dataset status with start time
     await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
       status: 'processing',
+      processing_progress: 0,
+      processing_step: 'Parsing CSV',
+      processing_started_at: new Date().toISOString(),
+      sections_ready: [],
     });
 
-    // Step 1: Parse CSV
+    // Step 1: Parse CSV (0-25%)
     console.log('Step 1: Parsing CSV...');
+    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+      processing_progress: 10,
+      processing_step: 'Parsing CSV...',
+    });
+
     const parseResult = await base44.functions.invoke('parseCSV', { 
       dataset_id, 
       file_url,
@@ -33,8 +42,18 @@ Deno.serve(async (req) => {
       throw new Error('Failed to parse CSV: ' + (parseResult.data?.error || 'Unknown error'));
     }
 
-    // Step 2: Compute Metrics
+    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+      processing_progress: 25,
+      processing_step: 'CSV parsed successfully',
+    });
+
+    // Step 2: Compute Metrics (25-50%)
     console.log('Step 2: Computing metrics...');
+    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+      processing_progress: 30,
+      processing_step: 'Computing metrics...',
+    });
+
     const computeResult = await base44.functions.invoke('computeMetrics', { 
       dataset_id 
     });
@@ -44,11 +63,23 @@ Deno.serve(async (req) => {
       throw new Error('Failed to compute metrics: ' + (computeResult.data?.error || 'Unknown error'));
     }
 
-    // Step 3: AI Generate Sections (core modules first)
-    console.log('Step 3: Generating AI sections...');
+    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+      processing_progress: 50,
+      processing_step: 'Metrics computed',
+    });
+
+    // Step 3: AI Generate ALL Sections (50-100%)
+    console.log('Step 3: Generating ALL AI sections...');
+    const allSections = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    
+    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+      processing_progress: 55,
+      processing_step: 'Generating AI reports...',
+    });
+
     const aiResult = await base44.functions.invoke('aiGenerateSections', { 
       dataset_id,
-      section_ids: [0, 1, 2, 3, 5],
+      section_ids: allSections,
     });
 
     console.log('AI result:', aiResult.data);
@@ -56,9 +87,13 @@ Deno.serve(async (req) => {
       throw new Error('Failed to generate AI sections: ' + (aiResult.data?.error || 'Unknown error'));
     }
 
-    // Update dataset to ready
+    // Update dataset to ready with completion time
     await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
       status: 'completed',
+      processing_progress: 100,
+      processing_step: 'Completed',
+      processing_completed_at: new Date().toISOString(),
+      sections_ready: allSections,
     });
 
     return Response.json({ 

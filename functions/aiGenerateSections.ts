@@ -50,17 +50,50 @@ Deno.serve(async (req) => {
         title: "Mix Health - Publisher Type Distribution",
         prompt: "Analyze the publisher type mix (Content, Deal/Coupon, Loyalty, etc.). Identify structural imbalances and recommend optimization.",
       },
+      4: {
+        title: "Efficiency Quadrant",
+        prompt: "Analyze publisher efficiency by ROI and scale. Identify stars, growth opportunities, and underperformers.",
+      },
       5: {
         title: "Approval & Transaction Quality",
         prompt: "Analyze the approval/pending/declined waterfall. Identify quality issues and suggest governance improvements.",
       },
+      6: {
+        title: "Tier Management",
+        prompt: "Analyze publisher tier distribution and performance. Recommend tier optimization strategies.",
+      },
+      7: {
+        title: "Action Plan Recommendations",
+        prompt: "Based on all previous analysis, recommend specific action items with priority and expected impact.",
+      },
+      8: {
+        title: "Timeline & Roadmap",
+        prompt: "Create a quarterly roadmap for implementing the recommended actions.",
+      },
+      9: {
+        title: "Data Quality Assessment",
+        prompt: "Assess data completeness and quality. Identify gaps and suggest improvements.",
+      },
+      10: {
+        title: "Appendix - Methodology",
+        prompt: "Explain the calculation methodology and data sources used in this analysis.",
+      },
     };
 
     const generatedSections = [];
+    const totalSections = sectionsToGenerate.length;
 
-    for (const sectionId of sectionsToGenerate) {
+    for (let idx = 0; idx < sectionsToGenerate.length; idx++) {
+      const sectionId = sectionsToGenerate[idx];
       const config = sectionConfigs[sectionId];
       if (!config) continue;
+
+      // Update progress
+      const progress = 55 + Math.round((idx / totalSections) * 45);
+      await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+        processing_progress: progress,
+        processing_step: `Generating section ${sectionId + 1}/${totalSections + 1}...`,
+      });
 
       const systemPrompt = `You are an expert affiliate marketing analyst. Analyze the provided metrics and evidence tables to generate insights.
 
@@ -114,6 +147,13 @@ ${evidenceContext}`;
       });
 
       generatedSections.push(sectionId);
+
+      // Update sections_ready array
+      const currentDataset = await base44.asServiceRole.entities.DataUpload.get(dataset_id);
+      const updatedSections = [...(currentDataset.sections_ready || []), sectionId];
+      await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+        sections_ready: updatedSections,
+      });
     }
 
     // Complete job
