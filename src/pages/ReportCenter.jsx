@@ -91,6 +91,36 @@ export default function ReportCenter() {
     }
   };
 
+  const handleBoardSummary = async () => {
+    if (!datasetId) {
+      toast.error('请先选择数据集');
+      return;
+    }
+
+    setDownloading('board');
+    try {
+      const response = await base44.functions.invoke('generateBoardSummary', { 
+        dataset_id: datasetId
+      });
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'board-summary.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      
+      toast.success('Board 摘要已下载');
+    } catch (error) {
+      toast.error('生成失败: ' + error.message);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   // Get current section
   const currentSection = sections.find(s => s.section_id === selectedChapter);
 
@@ -102,10 +132,26 @@ export default function ReportCenter() {
           <p className="text-sm text-slate-500 mt-1">0—10 章完整报告，支持多格式导出</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-            <Sparkles className="w-3.5 h-3.5" /> Board 摘要版
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-1.5 text-xs"
+            onClick={handleBoardSummary}
+            disabled={downloading === 'board' || !datasetId}
+          >
+            {downloading === 'board' ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5" />
+            )}
+            Board 摘要版
           </Button>
-          <Button size="sm" className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-700" onClick={handleGenerate} disabled={generating}>
+          <Button 
+            size="sm" 
+            className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-700" 
+            onClick={handleGenerate} 
+            disabled={generating || !datasetId}
+          >
             {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
             {generating ? "生成中..." : "生成完整报告"}
           </Button>
