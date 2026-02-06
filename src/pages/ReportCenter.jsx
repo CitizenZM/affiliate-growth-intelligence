@@ -66,15 +66,23 @@ export default function ReportCenter() {
 
     setDownloading(format);
     try {
-      const { data } = await base44.functions.invoke('generateReport', { 
-        dataset_id: datasetId, 
-        format: format.toLowerCase() 
+      const response = await fetch(`${window.location.origin}/api/functions/generateReport`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('base44_token')}`,
+        },
+        body: JSON.stringify({
+          dataset_id: datasetId,
+          format: format.toLowerCase(),
+        }),
       });
-      
-      // Create blob from ArrayBuffer
-      const blob = new Blob([data], { 
-        type: format === 'PDF' ? 'application/pdf' : 'text/markdown' 
-      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate report');
+      }
+
+      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -101,12 +109,22 @@ export default function ReportCenter() {
 
     setDownloading('board');
     try {
-      const { data } = await base44.functions.invoke('generateBoardSummary', { 
-        dataset_id: datasetId
+      const response = await fetch(`${window.location.origin}/api/functions/generateBoardSummary`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('base44_token')}`,
+        },
+        body: JSON.stringify({
+          dataset_id: datasetId,
+        }),
       });
-      
-      // Create blob from ArrayBuffer
-      const blob = new Blob([data], { type: 'application/pdf' });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate board summary');
+      }
+
+      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
