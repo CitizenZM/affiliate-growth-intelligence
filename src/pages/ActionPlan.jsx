@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import InsightsPanel from "../components/dashboard/InsightsPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -238,6 +239,20 @@ export default function ActionPlan() {
           </table>
         </div>
       )}
+
+      <InsightsPanel
+        insights={[
+          "行动计划是从分析到执行的关键桥梁，每个行动项都应该对应到具体的KPI改善目标",
+          "Workstream分类帮助识别资源分配重点，高优先级的内容扩张和Deal优化通常ROI最高",
+          "看板视图适合日常跟踪执行进度，表格视图适合做整体规划和资源分配",
+          "行动项应该SMART：具体(Specific)、可衡量(Measurable)、可达成(Achievable)、相关(Relevant)、有时限(Time-bound)"
+        ]}
+        problems={[
+          "如果Doing栏长期积压，说明资源不足或优先级设置有问题，需要重新评估",
+          "没有负责人或截止日期的行动项很容易被遗忘，建议强制填写",
+          "行动计划应该定期Review，至少每周更新一次状态，避免成为僵尸文档"
+        ]}
+      />
     </div>
   );
 }

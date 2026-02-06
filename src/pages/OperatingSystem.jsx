@@ -1,5 +1,6 @@
 import React from "react";
 import SectionLayout from "../components/dashboard/SectionLayout";
+import InsightsPanel from "../components/dashboard/InsightsPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download, Users, Star, TrendingUp, AlertTriangle } from "lucide-react";
@@ -139,6 +140,21 @@ export default function OperatingSystem() {
           ))}
         </div>
       </SectionLayout>
+
+      <InsightsPanel
+        insights={[
+          "四层金字塔模型是成熟联盟计划的标配，通过差异化运营策略最大化ROI",
+          "Tier 1 Hero通常占10-15个Publisher但贡献50%+ GMV，需要最高级别的资源投入和关系维护",
+          "Tier 2 Growth是未来的Hero储备，通过阶梯式激励和培育可快速提升至Tier 1",
+          "Tier 3 Long Tail虽然单体产出低，但总量庞大，通过自动化运营可实现规模化",
+          "Tier 4 Inactive需要定期清理，避免占用系统资源和降低运营效率"
+        ]}
+        problems={[
+          "如果Tier 1占比超过70%，说明过度依赖头部，抗风险能力弱，需要加速培育Tier 2",
+          "Tier 4占比超过60%说明激活率低，需要优化招商质量或启动激活campaign",
+          "从Tier 3到Tier 2的晋升通道应该是明确的，需要设定清晰的KPI和激励机制"
+        ]}
+      />
     </div>
   );
 }
