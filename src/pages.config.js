@@ -47,13 +47,24 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import Overview from './pages/Overview';
+import Input from './pages/Input';
+import Activation from './pages/Activation';
+import Concentration from './pages/Concentration';
+import MixHealth from './pages/MixHealth';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "Overview": Overview,
+    "Input": Input,
+    "Activation": Activation,
+    "Concentration": Concentration,
+    "MixHealth": MixHealth,
 }
 
 export const pagesConfig = {
+    mainPage: "Overview",
     Pages: PAGES,
     Layout: __Layout,
 };
