@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { name: "Overview", page: "Overview", icon: LayoutDashboard, label: "总览" },
+  { name: "Overview", page: "Dashboard", icon: LayoutDashboard, label: "总览" },
   { name: "Input", page: "Input", icon: Upload, label: "数据接入" },
   { name: "Activation", page: "Activation", icon: Filter, label: "激活漏斗" },
   { name: "Concentration", page: "Concentration", icon: BarChart3, label: "集中度" },

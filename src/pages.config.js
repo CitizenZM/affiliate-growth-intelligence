@@ -59,6 +59,7 @@ import ActionPlan from './pages/ActionPlan';
 import Timeline from './pages/Timeline';
 import ReportCenter from './pages/ReportCenter';
 import DataCenter from './pages/DataCenter';
+import Dashboard from './pages/Dashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -75,6 +76,7 @@ export const PAGES = {
     "Timeline": Timeline,
     "ReportCenter": ReportCenter,
     "DataCenter": DataCenter,
+    "Dashboard": Dashboard,
 }
 
 export const pagesConfig = {
