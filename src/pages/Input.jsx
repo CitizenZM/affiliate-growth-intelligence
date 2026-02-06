@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { Upload, ChevronRight, ChevronLeft, Loader2, FileSpreadsheet, History } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
@@ -42,6 +43,8 @@ export default function InputPage() {
   
   // Form data
   const [formData, setFormData] = useState({
+    websiteUrl: "",
+    webEnabled: false,
     platform: "",
     commission_model: "",
     market: "",
@@ -201,6 +204,7 @@ export default function InputPage() {
       const dataset = await base44.entities.DataUpload.create({
         file_url: uploadResult?.file_url,
         file_name: uploadResult?.file_name,
+        website_url: formData.websiteUrl || undefined,
         platform: formData.platform || undefined,
         commission_model: formData.commission_model || undefined,
         market: formData.market || undefined,
@@ -209,6 +213,16 @@ export default function InputPage() {
         field_mapping: fieldMapping,
         status: "processing",
       });
+
+      // Scrape website if enabled
+      if (formData.webEnabled && formData.websiteUrl) {
+        base44.functions.invoke('scrapeWebsite', {
+          website_url: formData.websiteUrl,
+          dataset_id: dataset.id,
+        }).catch(error => {
+          console.error('Website scraping error:', error);
+        });
+      }
 
       // Trigger processing with cleaning options
       base44.functions.invoke('processDataset', {
@@ -346,6 +360,30 @@ export default function InputPage() {
               {step === 3 && (
                 <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
                   <h2 className="text-lg font-semibold text-slate-800">补充信息</h2>
+                  
+                  {/* Website scraping section */}
+                  <div className="space-y-3 pb-4 border-b border-slate-200">
+                    <div>
+                      <Label className="text-sm text-slate-600">品牌官网 URL</Label>
+                      <Input 
+                        placeholder="https://www.example.com" 
+                        className="mt-1.5" 
+                        value={formData.websiteUrl} 
+                        onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })} 
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">联网抓取开关</p>
+                        <p className="text-xs text-slate-400 mt-0.5">开启后将抓取价格带、促销机制、信任组件等信息</p>
+                      </div>
+                      <Switch 
+                        checked={formData.webEnabled} 
+                        onCheckedChange={(v) => setFormData({ ...formData, webEnabled: v })} 
+                      />
+                    </div>
+                  </div>
+                  
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm text-slate-600">数据版本标签</Label>
