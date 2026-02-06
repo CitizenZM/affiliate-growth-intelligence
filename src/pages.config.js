@@ -47,36 +47,36 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import Overview from './pages/Overview';
-import Input from './pages/Input';
-import Activation from './pages/Activation';
-import Concentration from './pages/Concentration';
-import MixHealth from './pages/MixHealth';
-import Efficiency from './pages/Efficiency';
-import Approval from './pages/Approval';
-import OperatingSystem from './pages/OperatingSystem';
 import ActionPlan from './pages/ActionPlan';
-import Timeline from './pages/Timeline';
-import ReportCenter from './pages/ReportCenter';
-import DataCenter from './pages/DataCenter';
+import Activation from './pages/Activation';
+import Approval from './pages/Approval';
+import Concentration from './pages/Concentration';
 import Dashboard from './pages/Dashboard';
+import DataCenter from './pages/DataCenter';
+import Efficiency from './pages/Efficiency';
+import Input from './pages/Input';
+import MixHealth from './pages/MixHealth';
+import OperatingSystem from './pages/OperatingSystem';
+import Overview from './pages/Overview';
+import ReportCenter from './pages/ReportCenter';
+import Timeline from './pages/Timeline';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Overview": Overview,
-    "Input": Input,
-    "Activation": Activation,
-    "Concentration": Concentration,
-    "MixHealth": MixHealth,
-    "Efficiency": Efficiency,
-    "Approval": Approval,
-    "OperatingSystem": OperatingSystem,
     "ActionPlan": ActionPlan,
-    "Timeline": Timeline,
-    "ReportCenter": ReportCenter,
-    "DataCenter": DataCenter,
+    "Activation": Activation,
+    "Approval": Approval,
+    "Concentration": Concentration,
     "Dashboard": Dashboard,
+    "DataCenter": DataCenter,
+    "Efficiency": Efficiency,
+    "Input": Input,
+    "MixHealth": MixHealth,
+    "OperatingSystem": OperatingSystem,
+    "Overview": Overview,
+    "ReportCenter": ReportCenter,
+    "Timeline": Timeline,
 }
 
 export const pagesConfig = {
