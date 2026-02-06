@@ -1,0 +1,72 @@
+import React from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { Loader2, AlertCircle } from "lucide-react";
+
+export default function DataLoader({ 
+  datasetId, 
+  children, 
+  emptyMessage = "暂无数据",
+  loadingMessage = "加载中..."
+}) {
+  const { data: metrics = [], isLoading: metricsLoading, error: metricsError } = useQuery({
+    queryKey: ['metrics', datasetId],
+    queryFn: () => base44.entities.MetricSnapshot.filter({ dataset_id: datasetId }),
+    enabled: !!datasetId,
+  });
+
+  const { data: evidenceTables = [], isLoading: tablesLoading } = useQuery({
+    queryKey: ['evidence', datasetId],
+    queryFn: () => base44.entities.EvidenceTable.filter({ dataset_id: datasetId }),
+    enabled: !!datasetId,
+  });
+
+  const { data: sections = [], isLoading: sectionsLoading } = useQuery({
+    queryKey: ['sections', datasetId],
+    queryFn: () => base44.entities.ReportSection.filter({ dataset_id: datasetId }),
+    enabled: !!datasetId,
+  });
+
+  const isLoading = metricsLoading || tablesLoading || sectionsLoading;
+
+  if (!datasetId) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertCircle className="w-12 h-12 text-slate-300 mb-3" />
+        <p className="text-sm text-slate-500">{emptyMessage}</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-3" />
+        <p className="text-sm text-slate-500">{loadingMessage}</p>
+      </div>
+    );
+  }
+
+  if (metricsError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertCircle className="w-12 h-12 text-red-300 mb-3" />
+        <p className="text-sm text-red-600">加载失败: {metricsError.message}</p>
+      </div>
+    );
+  }
+
+  // Helper functions passed to children
+  const getMetric = (key) => metrics.find(m => m.metric_key === key)?.value_num || 0;
+  const getTable = (key) => evidenceTables.find(t => t.table_key === key)?.data_json || [];
+  const getSection = (id) => sections.find(s => s.section_id === id);
+
+  return children({ 
+    metrics, 
+    evidenceTables, 
+    sections, 
+    getMetric, 
+    getTable, 
+    getSection 
+  });
+}
