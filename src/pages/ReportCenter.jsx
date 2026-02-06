@@ -66,18 +66,19 @@ export default function ReportCenter() {
 
     setDownloading(format);
     try {
-      const response = await base44.functions.invoke('generateReport', { 
+      const { data } = await base44.functions.invoke('generateReport', { 
         dataset_id: datasetId, 
         format: format.toLowerCase() 
       });
       
-      const blob = new Blob([response.data], { 
+      // Create blob from ArrayBuffer
+      const blob = new Blob([data], { 
         type: format === 'PDF' ? 'application/pdf' : 'text/markdown' 
       });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `report.${format === 'PDF' ? 'pdf' : 'md'}`;
+      a.download = `Affiliate-Report.${format === 'PDF' ? 'pdf' : 'md'}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -85,6 +86,7 @@ export default function ReportCenter() {
       
       toast.success('下载成功');
     } catch (error) {
+      console.error('Download error:', error);
       toast.error('下载失败: ' + error.message);
     } finally {
       setDownloading(null);
@@ -99,15 +101,16 @@ export default function ReportCenter() {
 
     setDownloading('board');
     try {
-      const response = await base44.functions.invoke('generateBoardSummary', { 
+      const { data } = await base44.functions.invoke('generateBoardSummary', { 
         dataset_id: datasetId
       });
       
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      // Create blob from ArrayBuffer
+      const blob = new Blob([data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'board-summary.pdf';
+      a.download = 'Board-Summary.pdf';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -115,6 +118,7 @@ export default function ReportCenter() {
       
       toast.success('Board 摘要已下载');
     } catch (error) {
+      console.error('Board summary error:', error);
       toast.error('生成失败: ' + error.message);
     } finally {
       setDownloading(null);
