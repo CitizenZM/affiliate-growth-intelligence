@@ -49,7 +49,8 @@ export default function InputPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      await base44.entities.DataUpload.create({
+      // Create dataset
+      const dataset = await base44.entities.DataUpload.create({
         file_url: uploadResult?.file_url,
         file_name: uploadResult?.file_name,
         website_url: websiteUrl,
@@ -59,6 +60,14 @@ export default function InputPage() {
         cookie_window: formData.cookie_window ? Number(formData.cookie_window) : undefined,
         status: "processing",
       });
+
+      // Trigger processing pipeline
+      await base44.functions.invoke('processDataset', {
+        dataset_id: dataset.id,
+        file_url: uploadResult?.file_url,
+      });
+
+      return dataset;
     },
   });
 
@@ -225,14 +234,18 @@ export default function InputPage() {
 
               <Button
                 onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending}
+                disabled={saveMutation.isPending || !uploadResult}
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
                 {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 提交并开始分析
               </Button>
               {saveMutation.isSuccess && (
-                <p className="text-sm text-emerald-600 text-center">✓ 已提交，系统正在处理数据</p>
+                <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+                  <p className="text-sm text-emerald-700 font-medium">✓ 已提交，系统正在后台处理</p>
+                  <p className="text-xs text-emerald-600 mt-1">处理流程：解析 CSV → 计算指标 → AI 生成分析</p>
+                  <p className="text-xs text-emerald-600">完成后可在各模块页面查看结果</p>
+                </div>
               )}
             </div>
           )}
