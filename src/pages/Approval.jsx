@@ -1,6 +1,7 @@
 import React from "react";
 import SectionLayout from "../components/dashboard/SectionLayout";
 import EvidenceTable from "../components/dashboard/EvidenceTable";
+import InsightsPanel from "../components/dashboard/InsightsPanel";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Badge } from "@/components/ui/badge";
 
@@ -125,6 +126,20 @@ export default function Approval() {
           derivationNotes={derivationNotes}
         />
       </SectionLayout>
+
+      <InsightsPanel
+        insights={[
+          "Approval Rate是衡量交易质量的核心指标，直接影响实际收入和Publisher信心",
+          "健康的联盟计划Approval Rate应≥85%，低于70%说明存在严重的欺诈或质量问题",
+          "Pending状态通常持续7-30天，占比过高（>20%）会影响现金流预测",
+          "Declined主要原因包括：订单取消/退货、疑似欺诈、违反条款、技术跟踪错误"
+        ]}
+        problems={[
+          "如果单个Publisher的Decline Rate超过50%，需立即暂停合作并启动调查",
+          "Declined集中在少数Publisher说明是渠道质量问题；如果广泛分布则可能是系统或政策问题",
+          "持续的低Approval Rate会导致优质Publisher流失，形成恶性循环"
+        ]}
+      />
     </div>
   );
 }
