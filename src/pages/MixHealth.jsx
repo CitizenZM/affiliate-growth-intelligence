@@ -1,6 +1,7 @@
 import React from "react";
 import SectionLayout from "../components/dashboard/SectionLayout";
 import EvidenceTable from "../components/dashboard/EvidenceTable";
+import InsightsPanel from "../components/dashboard/InsightsPanel";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 
 const gmvData = [
@@ -123,6 +124,20 @@ export default function MixHealth() {
           derivationNotes={derivationNotes}
         />
       </SectionLayout>
+
+      <InsightsPanel
+        insights={[
+          "Content类Publisher通常AOV最高、用户质量最好，但获客成本也较高，是品牌建设的核心渠道",
+          "Deal/Coupon类能带来大量订单但利润率低，过度依赖会压缩整体利润空间",
+          "Loyalty/Cashback类具有稳定的复购率，适合作为基础盘保障",
+          "健康的渠道结构应该是：Content 25-35%、Deal ≤35%、Loyalty 10-20%、其他渠道补充"
+        ]}
+        problems={[
+          "Deal类超过50%说明渠道过度促销化，长期会损害品牌价值和用户忠诚度",
+          "Content类低于15%意味着缺乏高质量内容渠道，难以触达高价值用户",
+          "如果某类型Publisher数量远超目标但GMV占比低，说明该类型渠道质量参差不齐，需要清理"
+        ]}
+      />
     </div>
   );
 }

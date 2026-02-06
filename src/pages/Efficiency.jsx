@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import SectionLayout from "../components/dashboard/SectionLayout";
 import EvidenceTable from "../components/dashboard/EvidenceTable";
+import InsightsPanel from "../components/dashboard/InsightsPanel";
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ZAxis, ReferenceLine, Cell } from "recharts";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -199,6 +200,20 @@ export default function Efficiency() {
           )}
         </SheetContent>
       </Sheet>
+
+      <InsightsPanel
+        insights={[
+          "效率象限通过CPA和AOV两个维度，将Publisher分为4类：星级（高AOV低CPA）、潜力（高AOV高CPA）、规模（低AOV低CPA）、问题（低AOV高CPA）",
+          "散点大小代表GMV，可以直观看出哪些Publisher既效率高又体量大",
+          "ROI（投入产出比）是综合评估Publisher价值的核心指标，通常健康值应≥5x",
+          "不同类型Publisher有不同特征：Content类通常高AOV但CPA也高，Deal类CPA低但AOV也低"
+        ]}
+        problems={[
+          "如果一个Publisher处于右下象限（低AOV高CPA）且GMV占比大，属于高优先级治理对象",
+          "高AOV高CPA的Publisher不一定要淘汰，可以通过优化落地页、佣金结构来降低CPA",
+          "批量扩展低AOV低CPA的Publisher时，要注意边际效应递减，避免盲目追求数量"
+        ]}
+      />
     </div>
   );
 }

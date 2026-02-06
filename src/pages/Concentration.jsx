@@ -1,6 +1,7 @@
 import React from "react";
 import SectionLayout from "../components/dashboard/SectionLayout";
 import EvidenceTable from "../components/dashboard/EvidenceTable";
+import InsightsPanel from "../components/dashboard/InsightsPanel";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart } from "recharts";
 import { Badge } from "@/components/ui/badge";
 
@@ -110,6 +111,20 @@ export default function Concentration() {
           derivationNotes={derivationNotes}
         />
       </SectionLayout>
+
+      <InsightsPanel
+        insights={[
+          "Pareto曲线可视化了'20%的Publisher产生80%的GMV'现象，曲线越陡峭说明集中度越高",
+          "50% GMV所需Publisher数量是衡量头部依赖的关键指标，健康值应≥10个",
+          "Top10 GMV占比超过60%属于高风险状态，任何一个头部渠道的流失都可能对业务造成重大影响",
+          "集中度适中（Top10在40-50%）既能保证稳定产出，又不会过度依赖少数渠道"
+        ]}
+        problems={[
+          "如果Top1占比超过30%，说明对单一渠道的依赖已到危险水平，需立即启动分散化策略",
+          "累计GMV曲线如果在前10%就达到50%，说明长尾渠道几乎没有贡献，需要激活策略",
+          "对比不同时期的Pareto曲线走势，可以判断集中度改善或恶化的趋势"
+        ]}
+      />
     </div>
   );
 }
