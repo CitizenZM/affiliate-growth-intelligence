@@ -214,7 +214,7 @@ export default function InputPage() {
         status: "processing",
       });
 
-      // Scrape website if enabled
+      // Scrape website if enabled (don't wait)
       if (formData.webEnabled && formData.websiteUrl) {
         base44.functions.invoke('scrapeWebsite', {
           website_url: formData.websiteUrl,
@@ -224,14 +224,12 @@ export default function InputPage() {
         });
       }
 
-      // Trigger processing with cleaning options
+      // Trigger processing (don't wait, let it run in background)
       base44.functions.invoke('processDataset', {
         dataset_id: dataset.id,
         file_url: uploadResult?.file_url,
         field_mapping: fieldMapping,
         cleaning_options: cleaningOptions,
-      }).catch(error => {
-        console.error('Processing error:', error);
       });
 
       return dataset;
