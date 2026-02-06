@@ -16,8 +16,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'dataset_id is required' }, { status: 400 });
     }
 
-    // Fetch all report sections
+    // Fetch all report sections and metrics
     const sections = await base44.asServiceRole.entities.ReportSection.filter({ dataset_id });
+    const metrics = await base44.asServiceRole.entities.MetricSnapshot.filter({ dataset_id });
+    const publishers = await base44.asServiceRole.entities.Publisher.filter({ dataset_id });
     
     // Sort by section_id
     sections.sort((a, b) => a.section_id - b.section_id);
@@ -25,12 +27,21 @@ Deno.serve(async (req) => {
     // Fetch dataset metadata
     const dataset = await base44.asServiceRole.entities.DataUpload.get(dataset_id);
 
+    // Prepare analytics data
+    const analyticsData = {
+      metrics,
+      publishers,
+      totalPublishers: publishers.length,
+      activePublishers: publishers.filter(p => p.is_active).length,
+      totalGMV: publishers.reduce((sum, p) => sum + (p.total_revenue || 0), 0),
+    };
+
     if (format === 'pdf') {
-      return await generatePDF(sections, dataset);
+      return await generatePDF(sections, dataset, analyticsData);
     } else if (format === 'markdown') {
-      return generateMarkdown(sections, dataset);
+      return generateMarkdown(sections, dataset, analyticsData);
     } else if (format === 'json') {
-      return Response.json({ sections, dataset });
+      return Response.json({ sections, dataset, analyticsData });
     }
 
     return Response.json({ error: 'Unsupported format' }, { status: 400 });
@@ -44,21 +55,51 @@ Deno.serve(async (req) => {
   }
 });
 
-async function generatePDF(sections, dataset) {
+async function generatePDF(sections, dataset, analyticsData) {
   const doc = new jsPDF();
   let y = 20;
 
   // Cover page
   doc.setFontSize(24);
-  doc.text('Affiliate Growth Intelligence Report', 20, y);
-  y += 15;
+  doc.setTextColor(37, 99, 235);
+  doc.text('Affiliate Growth Intelligence', 20, y);
+  y += 10;
+  doc.text('Complete Report', 20, y);
+  y += 20;
   
   doc.setFontSize(12);
+  doc.setTextColor(0, 0, 0);
   doc.text(`Dataset: ${dataset.file_name}`, 20, y);
   y += 8;
   doc.text(`Version: ${dataset.version_label || 'N/A'}`, 20, y);
   y += 8;
-  doc.text(`Generated: ${new Date().toLocaleString()}`, 20, y);
+  doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, y);
+  y += 20;
+
+  // Key statistics
+  doc.setFillColor(249, 250, 251);
+  doc.rect(15, y, 180, 60, 'F');
+  doc.setDrawColor(226, 232, 240);
+  doc.rect(15, y, 180, 60, 'S');
+
+  doc.setFontSize(10);
+  doc.setTextColor(71, 85, 105);
+  doc.text('Overview Statistics', 20, y + 8);
+  y += 15;
+
+  doc.setFontSize(9);
+  const activeRatio = analyticsData.metrics.find(m => m.metric_key === 'active_ratio')?.value_num || 0;
+  const top10Share = analyticsData.metrics.find(m => m.metric_key === 'top10_share')?.value_num || 0;
+  const approvalRate = analyticsData.metrics.find(m => m.metric_key === 'avg_approval_rate')?.value_num || 0;
+  
+  doc.text(`Total Publishers: ${analyticsData.totalPublishers}`, 20, y);
+  doc.text(`Active Publishers: ${analyticsData.activePublishers}`, 80, y);
+  y += 6;
+  doc.text(`Active Ratio: ${(activeRatio * 100).toFixed(1)}%`, 20, y);
+  doc.text(`Total GMV: $${(analyticsData.totalGMV / 1000).toFixed(0)}K`, 80, y);
+  y += 6;
+  doc.text(`Top10 Concentration: ${(top10Share * 100).toFixed(1)}%`, 20, y);
+  doc.text(`Approval Rate: ${(approvalRate * 100).toFixed(1)}%`, 80, y);
   
   doc.addPage();
   y = 20;
@@ -163,11 +204,25 @@ async function generatePDF(sections, dataset) {
   });
 }
 
-function generateMarkdown(sections, dataset) {
+function generateMarkdown(sections, dataset, analyticsData) {
   let markdown = `# Affiliate Growth Intelligence Report\n\n`;
   markdown += `**Dataset:** ${dataset.file_name}\n`;
   markdown += `**Version:** ${dataset.version_label || 'N/A'}\n`;
-  markdown += `**Generated:** ${new Date().toLocaleString()}\n\n`;
+  markdown += `**Generated:** ${new Date().toLocaleDateString()}\n\n`;
+  markdown += `---\n\n`;
+
+  // Overview statistics
+  markdown += `## Overview Statistics\n\n`;
+  const activeRatio = analyticsData.metrics.find(m => m.metric_key === 'active_ratio')?.value_num || 0;
+  const top10Share = analyticsData.metrics.find(m => m.metric_key === 'top10_share')?.value_num || 0;
+  const approvalRate = analyticsData.metrics.find(m => m.metric_key === 'avg_approval_rate')?.value_num || 0;
+  
+  markdown += `- **Total Publishers:** ${analyticsData.totalPublishers}\n`;
+  markdown += `- **Active Publishers:** ${analyticsData.activePublishers}\n`;
+  markdown += `- **Active Ratio:** ${(activeRatio * 100).toFixed(1)}%\n`;
+  markdown += `- **Total GMV:** $${(analyticsData.totalGMV / 1000).toFixed(0)}K\n`;
+  markdown += `- **Top10 Concentration:** ${(top10Share * 100).toFixed(1)}%\n`;
+  markdown += `- **Approval Rate:** ${(approvalRate * 100).toFixed(1)}%\n\n`;
   markdown += `---\n\n`;
 
   // Table of contents

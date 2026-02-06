@@ -16,19 +16,40 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'dataset_id is required' }, { status: 400 });
     }
 
-    // Fetch key metrics
+    // Fetch key metrics and all sections
     const metrics = await base44.asServiceRole.entities.MetricSnapshot.filter({ dataset_id });
     const dataset = await base44.asServiceRole.entities.DataUpload.get(dataset_id);
-    const execSummary = await base44.asServiceRole.entities.ReportSection.filter({ 
-      dataset_id, 
-      section_id: 0 
-    });
+    const allSections = await base44.asServiceRole.entities.ReportSection.filter({ dataset_id });
+    const publishers = await base44.asServiceRole.entities.Publisher.filter({ dataset_id });
 
     // Get key metrics
     const activeRatio = metrics.find(m => m.metric_key === 'active_ratio')?.value_num || 0;
     const coreDriverRatio = metrics.find(m => m.metric_key === 'core_driver_ratio')?.value_num || 0;
     const top10Share = metrics.find(m => m.metric_key === 'top10_share')?.value_num || 0;
     const approvalRate = metrics.find(m => m.metric_key === 'avg_approval_rate')?.value_num || 0;
+    const totalGMV = publishers.reduce((sum, p) => sum + (p.total_revenue || 0), 0);
+
+    // Get executive summary
+    const execSummary = allSections.find(s => s.section_id === 0);
+    
+    // Collect key risks and opportunities from all sections
+    const allRisks = [];
+    const allOpportunities = [];
+    
+    allSections.forEach(section => {
+      if (section.key_findings) {
+        section.key_findings.forEach(finding => {
+          const text = typeof finding === 'string' ? finding : (finding.text || '');
+          const type = typeof finding === 'object' ? finding.type : null;
+          
+          if (type === 'risk') {
+            allRisks.push({ text, section: section.title });
+          } else if (type === 'opportunity') {
+            allOpportunities.push({ text, section: section.title });
+          }
+        });
+      }
+    });
 
     // Generate one-page PDF
     const doc = new jsPDF();
@@ -47,93 +68,115 @@ Deno.serve(async (req) => {
 
     // Key Metrics Box
     doc.setFillColor(249, 250, 251);
-    doc.rect(15, y, 180, 50, 'F');
+    doc.rect(15, y, 180, 60, 'F');
     doc.setDrawColor(226, 232, 240);
-    doc.rect(15, y, 180, 50, 'S');
+    doc.rect(15, y, 180, 60, 'S');
+
+    doc.setFontSize(10);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Core KPIs', 20, y + 8);
 
     // Metrics in grid
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(71, 85, 105);
     
     // Row 1
-    doc.text('Active Ratio', 20, y + 8);
-    doc.setFontSize(16);
+    y += 15;
+    doc.text('Active Ratio', 20, y);
+    doc.setFontSize(14);
     doc.setTextColor(37, 99, 235);
-    doc.text(`${(activeRatio * 100).toFixed(1)}%`, 20, y + 18);
+    doc.text(`${(activeRatio * 100).toFixed(1)}%`, 20, y + 8);
     
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(71, 85, 105);
-    doc.text('Core Driver Ratio', 65, y + 8);
-    doc.setFontSize(16);
+    doc.text('Total GMV', 70, y);
+    doc.setFontSize(14);
     doc.setTextColor(37, 99, 235);
-    doc.text(`${(coreDriverRatio * 100).toFixed(1)}%`, 65, y + 18);
+    doc.text(`$${(totalGMV / 1000).toFixed(0)}K`, 70, y + 8);
 
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(71, 85, 105);
-    doc.text('Top 10 Concentration', 115, y + 8);
-    doc.setFontSize(16);
+    doc.text('Top10 Share', 120, y);
+    doc.setFontSize(14);
     doc.setTextColor(37, 99, 235);
-    doc.text(`${(top10Share * 100).toFixed(1)}%`, 115, y + 18);
+    doc.text(`${(top10Share * 100).toFixed(1)}%`, 120, y + 8);
 
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(71, 85, 105);
-    doc.text('Approval Rate', 165, y + 8);
-    doc.setFontSize(16);
+    doc.text('Approval Rate', 160, y);
+    doc.setFontSize(14);
     doc.setTextColor(37, 99, 235);
-    doc.text(`${(approvalRate * 100).toFixed(1)}%`, 165, y + 18);
+    doc.text(`${(approvalRate * 100).toFixed(1)}%`, 160, y + 8);
 
     // Status indicators
     doc.setFontSize(7);
-    y += 28;
+    y += 18;
     
-    const statusColor = activeRatio > 0.5 ? [34, 197, 94] : [234, 179, 8];
+    const statusColor = activeRatio > 0.4 ? [34, 197, 94] : activeRatio > 0.3 ? [234, 179, 8] : [239, 68, 68];
     doc.setTextColor(...statusColor);
-    doc.text(activeRatio > 0.5 ? '✓ Healthy' : '⚠ Monitor', 20, y);
+    doc.text(activeRatio > 0.4 ? '✓ Good' : activeRatio > 0.3 ? '⚠ Low' : '✗ Risk', 20, y);
     
-    const coreColor = coreDriverRatio > 0.15 ? [34, 197, 94] : [234, 179, 8];
-    doc.setTextColor(...coreColor);
-    doc.text(coreDriverRatio > 0.15 ? '✓ Strong' : '⚠ Improve', 65, y);
+    doc.setTextColor(34, 197, 94);
+    doc.text('—', 70, y);
     
-    const concColor = top10Share < 0.7 ? [34, 197, 94] : [234, 179, 8];
+    const concColor = top10Share < 0.5 ? [34, 197, 94] : top10Share < 0.7 ? [234, 179, 8] : [239, 68, 68];
     doc.setTextColor(...concColor);
-    doc.text(top10Share < 0.7 ? '✓ Balanced' : '⚠ High Risk', 115, y);
+    doc.text(top10Share < 0.5 ? '✓ Good' : top10Share < 0.7 ? '⚠ High' : '✗ Risk', 120, y);
     
-    const apprColor = approvalRate > 0.85 ? [34, 197, 94] : [234, 179, 8];
+    const apprColor = approvalRate > 0.85 ? [34, 197, 94] : approvalRate > 0.75 ? [234, 179, 8] : [239, 68, 68];
     doc.setTextColor(...apprColor);
-    doc.text(approvalRate > 0.85 ? '✓ Good' : '⚠ Check', 165, y);
+    doc.text(approvalRate > 0.85 ? '✓ Good' : approvalRate > 0.75 ? '⚠ Low' : '✗ Risk', 160, y);
 
     y += 20;
 
     // Executive Summary
-    if (execSummary.length > 0) {
-      doc.setFontSize(12);
+    if (execSummary) {
+      doc.setFontSize(11);
       doc.setTextColor(0, 0, 0);
       doc.text('Executive Summary', 20, y);
-      y += 8;
+      y += 7;
 
       doc.setFontSize(9);
       doc.setTextColor(51, 65, 85);
-      const conclusion = execSummary[0].conclusion || 'No summary available';
+      const conclusion = execSummary.conclusion || 'Overall program performance requires attention across multiple dimensions.';
       const lines = doc.splitTextToSize(conclusion, 170);
       doc.text(lines, 20, y);
-      y += lines.length * 5 + 10;
+      y += lines.length * 5 + 8;
+    }
 
-      // Key findings
-      if (execSummary[0].key_findings && execSummary[0].key_findings.length > 0) {
-        doc.setFontSize(10);
-        doc.setTextColor(0, 0, 0);
-        doc.text('Key Findings & Priorities', 20, y);
-        y += 7;
+    // Top Risks
+    if (allRisks.length > 0 && y < 230) {
+      doc.setFontSize(10);
+      doc.setTextColor(220, 38, 38);
+      doc.text('⚠ Top Risks', 20, y);
+      y += 6;
 
-        doc.setFontSize(8);
-        doc.setTextColor(51, 65, 85);
-        execSummary[0].key_findings.slice(0, 5).forEach((finding) => {
-          const text = typeof finding === 'string' ? finding : (finding.text || '');
-          const lines = doc.splitTextToSize(`• ${text}`, 165);
-          doc.text(lines, 25, y);
-          y += lines.length * 4 + 2;
-        });
-      }
+      doc.setFontSize(8);
+      doc.setTextColor(51, 65, 85);
+      allRisks.slice(0, 3).forEach((risk) => {
+        if (y > 260) return;
+        const lines = doc.splitTextToSize(`• ${risk.text}`, 165);
+        doc.text(lines, 25, y);
+        y += lines.length * 4 + 1;
+      });
+      y += 5;
+    }
+
+    // Top Opportunities
+    if (allOpportunities.length > 0 && y < 240) {
+      doc.setFontSize(10);
+      doc.setTextColor(37, 99, 235);
+      doc.text('✓ Key Opportunities', 20, y);
+      y += 6;
+
+      doc.setFontSize(8);
+      doc.setTextColor(51, 65, 85);
+      allOpportunities.slice(0, 3).forEach((opp) => {
+        if (y > 270) return;
+        const lines = doc.splitTextToSize(`• ${opp.text}`, 165);
+        doc.text(lines, 25, y);
+        y += lines.length * 4 + 1;
+      });
     }
 
     // Footer
