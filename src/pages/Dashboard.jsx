@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import KPICard from "../components/dashboard/KPICard";
 import RiskOpportunityCard from "../components/dashboard/RiskOpportunityCard";
+import InsightsPanel from "../components/dashboard/InsightsPanel";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Sparkles, Loader2, Database } from "lucide-react";
@@ -219,6 +220,21 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
+
+          {/* Insights Panel */}
+          <InsightsPanel
+            insights={[
+              "Dashboard汇总了联盟计划的6大核心健康度指标，通过颜色编码（绿色=健康，黄色=关注，红色=风险）快速识别问题区域",
+              "Active Ratio显示有多少比例的Publisher在活跃产生GMV，低于40%说明存在大量沉睡渠道资源",
+              "Top10 GMV占比衡量头部依赖度，超过50%意味着业务过度依赖少数几个大渠道，抗风险能力弱",
+              "GMV/Active Publisher反映单渠道产出效率，是衡量渠道质量的关键指标"
+            ]}
+            problems={[
+              "如果看到多个红色或黄色指标，说明联盟计划存在结构性问题，需要优先查看对应的详细分析页面",
+              "主要风险和主要机会模块自动提取AI分析结果，点击可跳转到具体章节查看详细建议",
+              "使用数据集下拉菜单可以对比不同时期的数据，追踪改进效果"
+            ]}
+          />
         </>
       )}
     </div>
