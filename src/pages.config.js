@@ -57,6 +57,8 @@ import Approval from './pages/Approval';
 import OperatingSystem from './pages/OperatingSystem';
 import ActionPlan from './pages/ActionPlan';
 import Timeline from './pages/Timeline';
+import ReportCenter from './pages/ReportCenter';
+import DataCenter from './pages/DataCenter';
 import __Layout from './Layout.jsx';
 
 
@@ -71,6 +73,8 @@ export const PAGES = {
     "OperatingSystem": OperatingSystem,
     "ActionPlan": ActionPlan,
     "Timeline": Timeline,
+    "ReportCenter": ReportCenter,
+    "DataCenter": DataCenter,
 }
 
 export const pagesConfig = {
