@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import {
@@ -8,25 +8,56 @@ import {
   Download, Globe, Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import ProgressIndicator from "@/components/layout/ProgressIndicator";
+import ProcessingStatus from "@/components/layout/ProcessingStatus";
 
 const navItems = [
-  { name: "Overview", page: "Dashboard", icon: LayoutDashboard, label: "总览" },
-  { name: "Input", page: "Input", icon: Upload, label: "数据接入" },
-  { name: "Activation", page: "Activation", icon: Filter, label: "激活漏斗" },
-  { name: "Concentration", page: "Concentration", icon: BarChart3, label: "集中度" },
-  { name: "MixHealth", page: "MixHealth", icon: PieChart, label: "结构健康" },
-  { name: "Efficiency", page: "Efficiency", icon: ScatterChart, label: "效率象限" },
-  { name: "Approval", page: "Approval", icon: ShieldCheck, label: "交易质量" },
-  { name: "OperatingSystem", page: "OperatingSystem", icon: Layers, label: "分层治理" },
-  { name: "ActionPlan", page: "ActionPlan", icon: ListChecks, label: "行动计划" },
-  { name: "Timeline", page: "Timeline", icon: CalendarRange, label: "甘特图" },
-  { name: "ReportCenter", page: "ReportCenter", icon: FileText, label: "报告中心" },
-  { name: "DataCenter", page: "DataCenter", icon: Database, label: "数据中心" },
+  { name: "Overview", page: "Dashboard", icon: LayoutDashboard, label: "总览", sectionId: 0 },
+  { name: "Input", page: "Input", icon: Upload, label: "数据接入", sectionId: null },
+  { name: "Activation", page: "Activation", icon: Filter, label: "激活漏斗", sectionId: 1 },
+  { name: "Concentration", page: "Concentration", icon: BarChart3, label: "集中度", sectionId: 2 },
+  { name: "MixHealth", page: "MixHealth", icon: PieChart, label: "结构健康", sectionId: 3 },
+  { name: "Efficiency", page: "Efficiency", icon: ScatterChart, label: "效率象限", sectionId: 4 },
+  { name: "Approval", page: "Approval", icon: ShieldCheck, label: "交易质量", sectionId: 5 },
+  { name: "OperatingSystem", page: "OperatingSystem", icon: Layers, label: "分层治理", sectionId: 6 },
+  { name: "ActionPlan", page: "ActionPlan", icon: ListChecks, label: "行动计划", sectionId: 7 },
+  { name: "Timeline", page: "Timeline", icon: CalendarRange, label: "甘特图", sectionId: 8 },
+  { name: "ReportCenter", page: "ReportCenter", icon: FileText, label: "报告中心", sectionId: null },
+  { name: "DataCenter", page: "DataCenter", icon: Database, label: "数据中心", sectionId: null },
 ];
 
 export default function Layout({ children, currentPageName }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [latestDataset, setLatestDataset] = useState(null);
+
+  // Fetch latest dataset
+  const { data: datasets } = useQuery({
+    queryKey: ['datasets'],
+    queryFn: () => base44.entities.DataUpload.list('-created_date', 1),
+    refetchInterval: 3000, // Refresh every 3s
+  });
+
+  useEffect(() => {
+    if (datasets && datasets.length > 0) {
+      setLatestDataset(datasets[0]);
+    }
+  }, [datasets]);
+
+  // Subscribe to real-time updates
+  useEffect(() => {
+    if (!latestDataset?.id) return;
+    
+    const unsubscribe = base44.entities.DataUpload.subscribe((event) => {
+      if (event.id === latestDataset.id && event.type === 'update') {
+        setLatestDataset(event.data);
+      }
+    });
+
+    return unsubscribe;
+  }, [latestDataset?.id]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
@@ -95,6 +126,8 @@ export default function Layout({ children, currentPageName }) {
         <nav className="flex-1 overflow-y-auto scrollbar-thin py-3 px-2">
           {navItems.map((item) => {
             const isActive = currentPageName === item.page;
+            const showProgress = item.sectionId !== null && latestDataset;
+
             return (
               <Link
                 key={item.name}
@@ -109,7 +142,15 @@ export default function Layout({ children, currentPageName }) {
               >
                 <item.icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
                 {!collapsed && (
-                  <span className="text-[13px] truncate">{item.label}</span>
+                  <span className="text-[13px] truncate flex-1">{item.label}</span>
+                )}
+                {!collapsed && showProgress && (
+                  <ProgressIndicator 
+                    sectionId={item.sectionId}
+                    sectionsReady={latestDataset?.sections_ready || []}
+                    status={latestDataset?.status}
+                    isProcessing={latestDataset?.status === 'processing'}
+                  />
                 )}
               </Link>
             );
@@ -143,6 +184,15 @@ export default function Layout({ children, currentPageName }) {
                 {navItems.find(n => n.page === currentPageName)?.label || currentPageName}
               </span>
             </div>
+            {latestDataset && (
+              <ProcessingStatus 
+                status={latestDataset.status}
+                processingProgress={latestDataset.processing_progress}
+                processingStep={latestDataset.processing_step}
+                processingStartedAt={latestDataset.processing_started_at}
+                processingCompletedAt={latestDataset.processing_completed_at}
+              />
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="text-slate-500 gap-1.5 text-xs hidden md:flex">
