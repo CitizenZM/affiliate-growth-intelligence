@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { file_url, dataset_id } = await req.json();
+    const { file_url, dataset_id, field_mapping, cleaning_options } = await req.json();
 
     // Update job status
     await base44.asServiceRole.entities.Job.create({
@@ -56,51 +56,89 @@ Deno.serve(async (req) => {
       rows.push(row);
     }
 
-    // Detect field mappings
-    const fieldMapping = {};
-    const knownFields = {
-      'publisher_id': ['publisher_id', 'publisherid', 'pub_id', 'id'],
-      'publisher_name': ['publisher_name', 'publishername', 'name', 'publisher'],
-      'total_revenue': ['total_revenue', 'revenue', 'gmv', 'total_gmv', 'sales'],
-      'total_commission': ['total_commission', 'commission', 'payout'],
-      'clicks': ['clicks', 'num_clicks', 'click_count'],
-      'orders': ['orders', 'num_orders', 'transactions', 'conversions'],
-      'approved_revenue': ['approved_revenue', 'approved', 'approved_sales'],
-      'pending_revenue': ['pending_revenue', 'pending'],
-      'declined_revenue': ['declined_revenue', 'declined', 'reversed_revenue'],
-      'publisher_type': ['publisher_type', 'type', 'category', 'publisher_category'],
-      'aov': ['aov', 'avg_order_value', 'average_order_value'],
-      'cvr': ['cvr', 'conversion_rate', 'cr'],
-    };
+    // Use provided field mapping or auto-detect
+    let fieldMapping = field_mapping || {};
+    if (Object.keys(fieldMapping).length === 0) {
+      const knownFields = {
+        'publisher_id': ['publisher_id', 'publisherid', 'pub_id', 'id'],
+        'publisher_name': ['publisher_name', 'publishername', 'name', 'publisher'],
+        'total_revenue': ['total_revenue', 'revenue', 'gmv', 'total_gmv', 'sales'],
+        'total_commission': ['total_commission', 'commission', 'payout'],
+        'clicks': ['clicks', 'num_clicks', 'click_count'],
+        'orders': ['orders', 'num_orders', 'transactions', 'conversions'],
+        'approved_revenue': ['approved_revenue', 'approved', 'approved_sales'],
+        'pending_revenue': ['pending_revenue', 'pending'],
+        'declined_revenue': ['declined_revenue', 'declined', 'reversed_revenue'],
+        'publisher_type': ['publisher_type', 'type', 'category', 'publisher_category'],
+        'aov': ['aov', 'avg_order_value', 'average_order_value'],
+        'cvr': ['cvr', 'conversion_rate', 'cr'],
+      };
 
-    for (const [targetField, possibleNames] of Object.entries(knownFields)) {
-      for (const header of headers) {
-        if (possibleNames.includes(header.toLowerCase())) {
-          fieldMapping[header] = targetField;
-          break;
+      for (const [targetField, possibleNames] of Object.entries(knownFields)) {
+        for (const header of headers) {
+          if (possibleNames.includes(header.toLowerCase())) {
+            fieldMapping[header] = targetField;
+            break;
+          }
         }
       }
     }
 
-    // Save Publisher rows
+    // Save Publisher rows with cleaning
     const publishers = [];
+    const seen = new Set();
+    const cleanOpts = cleaning_options || {};
+    
     for (const row of rows) {
       const publisher = { dataset_id };
       
       // Map fields
+      let hasRequiredFields = false;
       for (const [sourceField, targetField] of Object.entries(fieldMapping)) {
+        if (!targetField) continue;
+        
         let value = row[sourceField];
+        
+        // Handle missing values
+        if (!value || value === '') {
+          if (cleanOpts.handleMissing) {
+            if (['total_revenue', 'total_commission', 'clicks', 'orders', 'approved_revenue', 'pending_revenue', 'declined_revenue', 'aov', 'cvr'].includes(targetField)) {
+              value = cleanOpts.missingNumeric === 'zero' ? 0 : null;
+            } else {
+              value = cleanOpts.missingText === 'unknown' ? 'Unknown' : null;
+            }
+          }
+        }
         
         // Convert numeric fields
         if (['total_revenue', 'total_commission', 'clicks', 'orders', 'approved_revenue', 'pending_revenue', 'declined_revenue', 'aov', 'cvr'].includes(targetField)) {
-          value = value ? parseFloat(value.replace(/[$,]/g, '')) : 0;
+          value = value ? parseFloat(String(value).replace(/[$,]/g, '')) : 0;
         }
         
         publisher[targetField] = value;
+        
+        if (targetField === 'publisher_name' && value) {
+          hasRequiredFields = true;
+        }
       }
+      
+      // Skip rows without required fields
+      if (!hasRequiredFields) continue;
 
       // Normalize publisher_id
-      publisher.publisher_id_norm = publisher.publisher_id || publisher.publisher_name?.toLowerCase().replace(/\s+/g, '_');
+      const pubKey = publisher.publisher_id || publisher.publisher_name?.toLowerCase().replace(/\s+/g, '_');
+      publisher.publisher_id_norm = pubKey;
+      
+      // Remove duplicates
+      if (cleanOpts.removeDuplicates && seen.has(pubKey)) {
+        continue;
+      }
+      seen.add(pubKey);
+      
+      // Filter low GMV
+      if (cleanOpts.filterLowGMV && (publisher.total_revenue || 0) < (cleanOpts.minGMV || 0)) {
+        continue;
+      }
       
       publishers.push(publisher);
     }

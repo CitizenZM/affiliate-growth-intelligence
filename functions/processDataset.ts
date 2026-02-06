@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { dataset_id, file_url } = await req.json();
+    const { dataset_id, file_url, field_mapping, cleaning_options } = await req.json();
 
     if (!dataset_id || !file_url) {
       return Response.json({ error: 'Missing dataset_id or file_url' }, { status: 400 });
@@ -23,7 +23,9 @@ Deno.serve(async (req) => {
     console.log('Step 1: Parsing CSV...');
     const parseResult = await base44.functions.invoke('parseCSV', { 
       dataset_id, 
-      file_url 
+      file_url,
+      field_mapping,
+      cleaning_options,
     });
 
     console.log('Parse result:', parseResult.data);
