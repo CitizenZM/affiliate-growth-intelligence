@@ -58,16 +58,28 @@ export default function InputPage() {
         commission_model: formData.commission_model || undefined,
         market: formData.market || undefined,
         cookie_window: formData.cookie_window ? Number(formData.cookie_window) : undefined,
+        version_label: formData.version_label || `v${new Date().toISOString().split('T')[0]}`,
         status: "processing",
       });
 
-      // Trigger processing pipeline
-      await base44.functions.invoke('processDataset', {
+      // Trigger processing pipeline (async - don't wait)
+      base44.functions.invoke('processDataset', {
         dataset_id: dataset.id,
         file_url: uploadResult?.file_url,
+      }).catch(error => {
+        console.error('Processing error:', error);
       });
 
       return dataset;
+    },
+    onSuccess: () => {
+      // Reset form after 2 seconds
+      setTimeout(() => {
+        setStep(1);
+        setUploadResult(null);
+        setWebsiteUrl("");
+        setFormData({});
+      }, 2000);
     },
   });
 

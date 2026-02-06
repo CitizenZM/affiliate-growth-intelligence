@@ -23,16 +23,35 @@ Deno.serve(async (req) => {
     const response = await fetch(file_url);
     const csvText = await response.text();
 
-    // Parse CSV
+    // Parse CSV (handle quoted fields with commas)
     const lines = csvText.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    
+    const parseCSVLine = (line) => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    };
+
+    const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, ''));
     const rows = [];
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+      if (!lines[i].trim()) continue;
+      const values = parseCSVLine(lines[i]);
       const row = {};
       headers.forEach((header, idx) => {
-        row[header] = values[idx] || null;
+        row[header] = values[idx] ? values[idx].replace(/^"|"$/g, '') : null;
       });
       rows.push(row);
     }
@@ -86,9 +105,24 @@ Deno.serve(async (req) => {
       publishers.push(publisher);
     }
 
-    // Bulk create publishers
-    for (const pub of publishers) {
-      await base44.asServiceRole.entities.Publisher.create(pub);
+    // Bulk create publishers (use bulkCreate if available, otherwise batch)
+    if (publishers.length > 0) {
+      try {
+        // Try bulk create (may not be available in all SDK versions)
+        await base44.asServiceRole.entities.Publisher.bulkCreate(publishers);
+      } catch (bulkError) {
+        // Fall back to individual creates in batches
+        const batchSize = 10;
+        for (let i = 0; i < publishers.length; i += batchSize) {
+          const batch = publishers.slice(i, i + batchSize);
+          await Promise.all(batch.map(pub => 
+            base44.asServiceRole.entities.Publisher.create(pub).catch(e => {
+              console.error('Failed to create publisher:', pub.publisher_name, e);
+              return null;
+            })
+          ));
+        }
+      }
     }
 
     // Update dataset

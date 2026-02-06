@@ -20,30 +20,36 @@ Deno.serve(async (req) => {
     });
 
     // Step 1: Parse CSV
+    console.log('Step 1: Parsing CSV...');
     const parseResult = await base44.functions.invoke('parseCSV', { 
       dataset_id, 
       file_url 
     });
 
+    console.log('Parse result:', parseResult.data);
     if (!parseResult.data?.success) {
       throw new Error('Failed to parse CSV: ' + (parseResult.data?.error || 'Unknown error'));
     }
 
     // Step 2: Compute Metrics
+    console.log('Step 2: Computing metrics...');
     const computeResult = await base44.functions.invoke('computeMetrics', { 
       dataset_id 
     });
 
+    console.log('Compute result:', computeResult.data);
     if (!computeResult.data?.success) {
       throw new Error('Failed to compute metrics: ' + (computeResult.data?.error || 'Unknown error'));
     }
 
     // Step 3: AI Generate Sections (core modules first)
+    console.log('Step 3: Generating AI sections...');
     const aiResult = await base44.functions.invoke('aiGenerateSections', { 
       dataset_id,
       section_ids: [0, 1, 2, 3, 5],
     });
 
+    console.log('AI result:', aiResult.data);
     if (!aiResult.data?.success) {
       throw new Error('Failed to generate AI sections: ' + (aiResult.data?.error || 'Unknown error'));
     }
