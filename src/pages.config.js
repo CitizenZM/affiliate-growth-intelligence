@@ -52,6 +52,11 @@ import Input from './pages/Input';
 import Activation from './pages/Activation';
 import Concentration from './pages/Concentration';
 import MixHealth from './pages/MixHealth';
+import Efficiency from './pages/Efficiency';
+import Approval from './pages/Approval';
+import OperatingSystem from './pages/OperatingSystem';
+import ActionPlan from './pages/ActionPlan';
+import Timeline from './pages/Timeline';
 import __Layout from './Layout.jsx';
 
 
@@ -61,6 +66,11 @@ export const PAGES = {
     "Activation": Activation,
     "Concentration": Concentration,
     "MixHealth": MixHealth,
+    "Efficiency": Efficiency,
+    "Approval": Approval,
+    "OperatingSystem": OperatingSystem,
+    "ActionPlan": ActionPlan,
+    "Timeline": Timeline,
 }
 
 export const pagesConfig = {
