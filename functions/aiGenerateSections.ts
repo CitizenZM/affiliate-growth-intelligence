@@ -149,11 +149,18 @@ ${evidenceContext}`;
       generatedSections.push(sectionId);
 
       // Update sections_ready array
-      const currentDataset = await base44.asServiceRole.entities.DataUpload.get(dataset_id);
-      const updatedSections = [...(currentDataset.sections_ready || []), sectionId];
-      await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
-        sections_ready: updatedSections,
-      });
+      try {
+        const datasets = await base44.asServiceRole.entities.DataUpload.filter({ id: dataset_id });
+        if (datasets.length > 0) {
+          const currentDataset = datasets[0];
+          const updatedSections = [...(currentDataset.sections_ready || []), sectionId];
+          await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+            sections_ready: updatedSections,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to update sections_ready:', err);
+      }
     }
 
     // Complete job
