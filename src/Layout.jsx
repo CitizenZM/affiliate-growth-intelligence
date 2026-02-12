@@ -5,33 +5,37 @@ import {
   LayoutDashboard, Upload, Filter, PieChart, BarChart3,
   ScatterChart, ShieldCheck, Layers, ListChecks, CalendarRange,
   FileText, Database, ChevronLeft, ChevronRight, Menu, X,
-  Download, Globe, Bell
+  Download, Globe, Bell, Languages
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import ProgressIndicator from "@/components/layout/ProgressIndicator";
 import ProcessingStatus from "@/components/layout/ProcessingStatus";
+import { useLanguage } from "@/components/LanguageContext";
 
-const navItems = [
-  { name: "Overview", page: "Dashboard", icon: LayoutDashboard, label: "总览", sectionId: 0 },
-  { name: "Input", page: "Input", icon: Upload, label: "数据接入", sectionId: null },
-  { name: "Activation", page: "Activation", icon: Filter, label: "激活漏斗", sectionId: 1 },
-  { name: "Concentration", page: "Concentration", icon: BarChart3, label: "集中度", sectionId: 2 },
-  { name: "MixHealth", page: "MixHealth", icon: PieChart, label: "结构健康", sectionId: 3 },
-  { name: "Efficiency", page: "Efficiency", icon: ScatterChart, label: "效率象限", sectionId: 4 },
-  { name: "Approval", page: "Approval", icon: ShieldCheck, label: "交易质量", sectionId: 5 },
-  { name: "OperatingSystem", page: "OperatingSystem", icon: Layers, label: "分层治理", sectionId: 6 },
-  { name: "ActionPlan", page: "ActionPlan", icon: ListChecks, label: "行动计划", sectionId: 7 },
-  { name: "Timeline", page: "Timeline", icon: CalendarRange, label: "甘特图", sectionId: 8 },
-  { name: "ReportCenter", page: "ReportCenter", icon: FileText, label: "报告中心", sectionId: null },
-  { name: "DataCenter", page: "DataCenter", icon: Database, label: "数据中心", sectionId: null },
+const getNavItems = (t) => [
+  { name: "Overview", page: "Dashboard", icon: LayoutDashboard, label: t('nav.overview'), sectionId: 0 },
+  { name: "Input", page: "Input", icon: Upload, label: t('nav.input'), sectionId: null },
+  { name: "Activation", page: "Activation", icon: Filter, label: t('nav.activation'), sectionId: 1 },
+  { name: "Concentration", page: "Concentration", icon: BarChart3, label: t('nav.concentration'), sectionId: 2 },
+  { name: "MixHealth", page: "MixHealth", icon: PieChart, label: t('nav.mixHealth'), sectionId: 3 },
+  { name: "Efficiency", page: "Efficiency", icon: ScatterChart, label: t('nav.efficiency'), sectionId: 4 },
+  { name: "Approval", page: "Approval", icon: ShieldCheck, label: t('nav.approval'), sectionId: 5 },
+  { name: "OperatingSystem", page: "OperatingSystem", icon: Layers, label: t('nav.operatingSystem'), sectionId: 6 },
+  { name: "ActionPlan", page: "ActionPlan", icon: ListChecks, label: t('nav.actionPlan'), sectionId: 7 },
+  { name: "Timeline", page: "Timeline", icon: CalendarRange, label: t('nav.timeline'), sectionId: 8 },
+  { name: "ReportCenter", page: "ReportCenter", icon: FileText, label: t('nav.reportCenter'), sectionId: null },
+  { name: "DataCenter", page: "DataCenter", icon: Database, label: t('nav.dataCenter'), sectionId: null },
 ];
 
 export default function Layout({ children, currentPageName }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [latestDataset, setLatestDataset] = useState(null);
+  const { language, toggleLanguage, t } = useLanguage();
+  
+  const navItems = getNavItems(t);
 
   // Fetch latest dataset
   const { data: datasets } = useQuery({
@@ -161,7 +165,7 @@ export default function Layout({ children, currentPageName }) {
         {!collapsed && (
           <div className="p-3 border-t border-slate-100">
             <div className="bg-slate-50 rounded-lg p-3">
-              <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">数据版本</p>
+              <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">{t('layout.dataVersion')}</p>
               <p className="text-xs text-slate-600 mt-1 font-medium">v2026.02 — Latest</p>
             </div>
           </div>
@@ -197,11 +201,20 @@ export default function Layout({ children, currentPageName }) {
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="text-slate-500 gap-1.5 text-xs hidden md:flex">
               <Globe className="w-3.5 h-3.5" />
-              联网抓取
+              {t('layout.scrape')}
             </Button>
             <Button variant="ghost" size="sm" className="text-slate-500 gap-1.5 text-xs hidden md:flex">
               <Download className="w-3.5 h-3.5" />
-              导出
+              {t('common.export')}
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={toggleLanguage}
+              className="text-slate-500 gap-1.5 text-xs"
+            >
+              <Languages className="w-3.5 h-3.5" />
+              {language === 'zh' ? 'EN' : '中文'}
             </Button>
             <button className="relative p-2 rounded-lg hover:bg-slate-100">
               <Bell className="w-4.5 h-4.5 text-slate-400" />
