@@ -109,13 +109,19 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Process dataset error:', error);
     
-    // Update dataset status to error
+    // Update dataset status to error (reparse the body if needed)
     try {
-      const { dataset_id } = await req.json();
       const base44 = createClientFromRequest(req);
-      await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
-        status: 'error',
-      });
+      const bodyText = await req.text();
+      const body = JSON.parse(bodyText);
+      const dataset_id = body.dataset_id;
+      
+      if (dataset_id) {
+        await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+          status: 'error',
+          processing_step: `Error: ${error.message}`,
+        });
+      }
     } catch (updateError) {
       console.error('Failed to update dataset status:', updateError);
     }
