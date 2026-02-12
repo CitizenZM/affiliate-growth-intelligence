@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
     sorted.forEach((p, i) => {
       cum += p.total_revenue || 0;
       const pubPct = ((i + 1) / sorted.length) * 100;
-      const gmvPct = (cum / total_gmv) * 100;
+      const gmvPct = total_gmv > 0 ? (cum / total_gmv) * 100 : 0;
       if (i % Math.ceil(sorted.length / 20) === 0 || i === sorted.length - 1) {
         paretoPoints.push({ pubPct: pubPct.toFixed(1), gmvPct: gmvPct.toFixed(1) });
       }
@@ -290,6 +290,108 @@ Deno.serve(async (req) => {
       data_json: approvalDetail,
       module_id: 5,
       row_count: approvalDetail.length,
+    });
+
+    // ============ MODULE 4: Efficiency ============
+    const efficiencyRows = publishers
+      .filter((p) => (p.total_revenue || 0) > 0)
+      .map((p) => {
+        const orders = p.orders || 0;
+        const revenue = p.total_revenue || 0;
+        const commission = p.total_commission || 0;
+        const cpa = orders > 0 ? commission / orders : 0;
+        const aov = orders > 0 ? revenue / orders : 0;
+        const roi = commission > 0 ? revenue / commission : 0;
+        return {
+          name: p.publisher_name || p.publisher_id || 'Unknown',
+          type: p.publisher_type || 'other',
+          cpa: Number(cpa.toFixed(2)),
+          aov: Number(aov.toFixed(2)),
+          roi: Number(roi.toFixed(2)),
+          gmv: revenue,
+        };
+      });
+
+    await base44.asServiceRole.entities.EvidenceTable.create({
+      dataset_id,
+      table_key: 'efficiency_scatter',
+      data_json: efficiencyRows,
+      module_id: 4,
+      row_count: efficiencyRows.length,
+    });
+
+    // ============ MODULE 6: Operating System ============
+    const tierBase = [...publishers].sort((a, b) => (b.total_revenue || 0) - (a.total_revenue || 0));
+    const tierRows = tierBase.map((p, idx) => {
+      const rank = idx + 1;
+      let tier = 'Tier 3';
+      if ((p.total_revenue || 0) <= 0) tier = 'Tier 4';
+      else if (rank <= 10) tier = 'Tier 1';
+      else if (rank <= 50) tier = 'Tier 2';
+      return {
+        publisher_name: p.publisher_name || p.publisher_id || 'Unknown',
+        total_revenue: p.total_revenue || 0,
+        tier,
+      };
+    });
+
+    const tierSummary = ['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4'].map((tier) => {
+      const list = tierRows.filter((row) => row.tier === tier);
+      const tierGMV = list.reduce((sum, row) => sum + row.total_revenue, 0);
+      return {
+        tier,
+        count: list.length,
+        gmv: tierGMV,
+        gmv_share: total_gmv > 0 ? tierGMV / total_gmv : 0,
+        top_publishers: list
+          .sort((a, b) => b.total_revenue - a.total_revenue)
+          .slice(0, 5)
+          .map((row) => row.publisher_name),
+      };
+    });
+
+    await base44.asServiceRole.entities.EvidenceTable.create({
+      dataset_id,
+      table_key: 'tier_summary',
+      data_json: tierSummary,
+      module_id: 6,
+      row_count: tierSummary.length,
+    });
+
+    // ============ MODULE 8: Timeline ============
+    const timelineTasks = [
+      {
+        name: `激活提升计划（目标活跃率 ${(Math.max(active_ratio, 0.4) * 100).toFixed(0)}%）`,
+        month_start: 1,
+        duration: 3,
+        priority: active_ratio < 0.4 ? 'high' : 'medium',
+      },
+      {
+        name: `去集中化计划（Top10 ${(top10_share * 100).toFixed(0)}%）`,
+        month_start: 2,
+        duration: 4,
+        priority: top10_share > 0.5 ? 'high' : 'medium',
+      },
+      {
+        name: `审批治理（Approval ${(approval_rate * 100).toFixed(0)}%）`,
+        month_start: 3,
+        duration: 2,
+        priority: approval_rate < 0.85 ? 'high' : 'medium',
+      },
+      {
+        name: '结构优化与季度复盘',
+        month_start: 6,
+        duration: 3,
+        priority: 'medium',
+      },
+    ];
+
+    await base44.asServiceRole.entities.EvidenceTable.create({
+      dataset_id,
+      table_key: 'timeline_tasks',
+      data_json: timelineTasks,
+      module_id: 8,
+      row_count: timelineTasks.length,
     });
 
     // Complete job
