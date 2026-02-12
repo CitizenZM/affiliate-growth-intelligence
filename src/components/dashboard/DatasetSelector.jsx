@@ -16,15 +16,20 @@ export default function DatasetSelector({ value, onChange }) {
   const { data: datasets = [], isLoading } = useQuery({
     queryKey: ['datasets'],
     queryFn: () => base44.entities.DataUpload.list('-created_date', 50),
+    refetchInterval: 3000,
   });
 
   // Auto-select latest completed dataset
   React.useEffect(() => {
-    if (datasets.length > 0 && !value) {
-      const latest = datasets.find(d => d.status === 'completed') || datasets[0];
-      onChange?.(latest.id);
+    if (datasets.length > 0) {
+      const latest = datasets.find(d => d.status === 'completed');
+      if (latest && latest.id !== value) {
+        onChange?.(latest.id);
+      } else if (!value && datasets[0]) {
+        onChange?.(datasets[0].id);
+      }
     }
-  }, [datasets, value, onChange]);
+  }, [datasets]);
 
   if (isLoading) return null;
 

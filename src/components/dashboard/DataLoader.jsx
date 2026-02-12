@@ -13,18 +13,21 @@ export default function DataLoader({
     queryKey: ['metrics', datasetId],
     queryFn: () => base44.entities.MetricSnapshot.filter({ dataset_id: datasetId }),
     enabled: !!datasetId,
+    refetchInterval: 3000,
   });
 
   const { data: evidenceTables = [], isLoading: tablesLoading } = useQuery({
     queryKey: ['evidence', datasetId],
     queryFn: () => base44.entities.EvidenceTable.filter({ dataset_id: datasetId }),
     enabled: !!datasetId,
+    refetchInterval: 3000,
   });
 
   const { data: sections = [], isLoading: sectionsLoading } = useQuery({
     queryKey: ['sections', datasetId],
     queryFn: () => base44.entities.ReportSection.filter({ dataset_id: datasetId }),
     enabled: !!datasetId,
+    refetchInterval: 3000,
   });
 
   const isLoading = metricsLoading || tablesLoading || sectionsLoading;
