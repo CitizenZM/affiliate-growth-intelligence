@@ -1,8 +1,8 @@
 import React from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { listDatasetsForSelector } from "@/lib/supabasePipelineService";
 
 const statusColors = {
   completed: { bg: "bg-emerald-50", text: "text-emerald-700", label: "已完成" },
@@ -18,7 +18,7 @@ export default function DatasetSelector({ value, onChange }) {
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('数据加载超时（>10秒），请刷新页面')), 10000)
       );
-      const dataPromise = base44.entities.DataUpload.list('-created_date', 50);
+      const dataPromise = listDatasetsForSelector();
       return Promise.race([dataPromise, timeoutPromise]);
     },
     refetchInterval: 3000,

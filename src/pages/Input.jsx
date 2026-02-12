@@ -14,6 +14,7 @@ import FilePreview from "../components/input/FilePreview";
 import FieldMapper from "../components/input/FieldMapper";
 import DataCleaning from "../components/input/DataCleaning";
 import HistoryPanel from "../components/input/HistoryPanel";
+import { syncDatasetRun } from "@/lib/supabasePipelineService";
 
 const STEPS = ["上传文件", "预览&映射", "数据清洗", "补充信息"];
 
@@ -225,6 +226,8 @@ export default function InputPage() {
         field_mapping: fieldMapping,
         status: "processing",
       });
+
+      syncDatasetRun(dataset).catch(() => {});
 
       // Scrape website if enabled (don't wait)
       if (formData.webEnabled && formData.websiteUrl) {

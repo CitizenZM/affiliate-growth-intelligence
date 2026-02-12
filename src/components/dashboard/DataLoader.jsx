@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, AlertCircle } from "lucide-react";
+import { syncAnalysisSnapshot } from "@/lib/supabasePipelineService";
 
 export default function DataLoader({ 
   datasetId, 
@@ -52,6 +53,11 @@ export default function DataLoader({
   });
 
   const isLoading = metricsLoading || tablesLoading || sectionsLoading;
+
+  useEffect(() => {
+    if (!datasetId || metrics.length === 0) return;
+    syncAnalysisSnapshot(datasetId, metrics, evidenceTables, sections).catch(() => {});
+  }, [datasetId, metrics, evidenceTables, sections]);
 
   if (!datasetId) {
     return (

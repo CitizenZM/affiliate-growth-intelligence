@@ -12,6 +12,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import ProgressIndicator from "@/components/layout/ProgressIndicator";
 import ProcessingStatus from "@/components/layout/ProcessingStatus";
+import { syncDatasetRun } from "@/lib/supabasePipelineService";
 
 const navItems = [
   { name: "Overview", page: "Dashboard", icon: LayoutDashboard, label: "总览", sectionId: 0 },
@@ -43,6 +44,7 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     if (datasets && datasets.length > 0) {
       setLatestDataset(datasets[0]);
+      syncDatasetRun(datasets[0]).catch(() => {});
     }
   }, [datasets]);
 
@@ -53,6 +55,7 @@ export default function Layout({ children, currentPageName }) {
     const unsubscribe = base44.entities.DataUpload.subscribe((event) => {
       if (event.id === latestDataset.id && event.type === 'update') {
         setLatestDataset(event.data);
+        syncDatasetRun(event.data).catch(() => {});
       }
     });
 
