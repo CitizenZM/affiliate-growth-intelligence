@@ -18,6 +18,7 @@ import HistoryPanel from "../components/input/HistoryPanel";
 const STEPS = ["上传文件", "预览&映射", "数据清洗", "补充信息"];
 
 export default function InputPage() {
+  const [activeTab, setActiveTab] = useState("upload");
   const [step, setStep] = useState(0);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -187,6 +188,8 @@ export default function InputPage() {
 
   const handleReuseConfig = (historyItem) => {
     setFormData({
+      websiteUrl: historyItem.website_url || "",
+      webEnabled: false,
       platform: historyItem.platform || "",
       commission_model: historyItem.commission_model || "",
       market: historyItem.market || "",
@@ -197,6 +200,9 @@ export default function InputPage() {
     if (historyItem.field_mapping) {
       setFieldMapping(historyItem.field_mapping);
     }
+    
+    // Switch to upload tab
+    setActiveTab("upload");
   };
 
   const saveMutation = useMutation({
@@ -254,7 +260,7 @@ export default function InputPage() {
         <p className="text-sm text-slate-500 mt-1">智能解析、字段映射、数据清洗一站式流程</p>
       </div>
 
-      <Tabs defaultValue="upload" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="upload" className="text-xs">
             <Upload className="w-3.5 h-3.5 mr-1.5" />
