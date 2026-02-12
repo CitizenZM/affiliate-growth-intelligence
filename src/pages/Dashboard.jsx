@@ -18,6 +18,7 @@ export default function Dashboard() {
   const { data: datasets = [], isLoading: datasetsLoading } = useQuery({
     queryKey: ['datasets'],
     queryFn: () => base44.entities.DataUpload.list('-created_date', 50),
+    refetchInterval: 3000,
   });
 
   // Get metrics for selected dataset
@@ -25,6 +26,7 @@ export default function Dashboard() {
     queryKey: ['metrics', selectedDatasetId],
     queryFn: () => base44.entities.MetricSnapshot.filter({ dataset_id: selectedDatasetId }),
     enabled: !!selectedDatasetId,
+    refetchInterval: 3000,
   });
 
   // Get report sections for risks/opportunities
@@ -32,15 +34,20 @@ export default function Dashboard() {
     queryKey: ['sections', selectedDatasetId],
     queryFn: () => base44.entities.ReportSection.filter({ dataset_id: selectedDatasetId }),
     enabled: !!selectedDatasetId,
+    refetchInterval: 3000,
   });
 
   // Auto-select latest completed dataset
   React.useEffect(() => {
-    if (datasets.length > 0 && !selectedDatasetId) {
-      const latest = datasets.find(d => d.status === 'completed') || datasets[0];
-      setSelectedDatasetId(latest.id);
+    if (datasets.length > 0) {
+      const latest = datasets.find(d => d.status === 'completed');
+      if (latest && latest.id !== selectedDatasetId) {
+        setSelectedDatasetId(latest.id);
+      } else if (!selectedDatasetId && datasets[0]) {
+        setSelectedDatasetId(datasets[0].id);
+      }
     }
-  }, [datasets, selectedDatasetId]);
+  }, [datasets]);
 
   // Build KPIs from metrics
   const getMetric = (key) => metrics.find(m => m.metric_key === key)?.value_num || 0;
