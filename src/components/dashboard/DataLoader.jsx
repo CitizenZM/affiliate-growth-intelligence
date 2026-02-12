@@ -11,23 +11,44 @@ export default function DataLoader({
 }) {
   const { data: metrics = [], isLoading: metricsLoading, error: metricsError } = useQuery({
     queryKey: ['metrics', datasetId],
-    queryFn: () => base44.entities.MetricSnapshot.filter({ dataset_id: datasetId }),
+    queryFn: async () => {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('数据加载超时（>10秒），请检查数据处理状态或刷新页面')), 10000)
+      );
+      const dataPromise = base44.entities.MetricSnapshot.filter({ dataset_id: datasetId });
+      return Promise.race([dataPromise, timeoutPromise]);
+    },
     enabled: !!datasetId,
     refetchInterval: 3000,
+    retry: 1,
   });
 
   const { data: evidenceTables = [], isLoading: tablesLoading } = useQuery({
     queryKey: ['evidence', datasetId],
-    queryFn: () => base44.entities.EvidenceTable.filter({ dataset_id: datasetId }),
+    queryFn: async () => {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('数据加载超时（>10秒），请检查数据处理状态或刷新页面')), 10000)
+      );
+      const dataPromise = base44.entities.EvidenceTable.filter({ dataset_id: datasetId });
+      return Promise.race([dataPromise, timeoutPromise]);
+    },
     enabled: !!datasetId,
     refetchInterval: 3000,
+    retry: 1,
   });
 
   const { data: sections = [], isLoading: sectionsLoading } = useQuery({
     queryKey: ['sections', datasetId],
-    queryFn: () => base44.entities.ReportSection.filter({ dataset_id: datasetId }),
+    queryFn: async () => {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('数据加载超时（>10秒），请检查数据处理状态或刷新页面')), 10000)
+      );
+      const dataPromise = base44.entities.ReportSection.filter({ dataset_id: datasetId });
+      return Promise.race([dataPromise, timeoutPromise]);
+    },
     enabled: !!datasetId,
     refetchInterval: 3000,
+    retry: 1,
   });
 
   const isLoading = metricsLoading || tablesLoading || sectionsLoading;
