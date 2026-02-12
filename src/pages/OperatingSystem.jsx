@@ -76,16 +76,16 @@ export default function OperatingSystem() {
       </div>
 
       <DataLoader datasetId={selectedDataset}>
-        {({ getMetric, getTable, getSection, publishers }) => {
+        {({ getMetric, getTable, getSection, allPublishers }) => {
           const section = getSection(6);
           const totalGMV = getMetric('total_gmv');
           
           // Get all publishers and sort by revenue
-          const sortedPublishers = [...publishers]
+          const sortedPublishers = allPublishers
             .filter(p => p.total_revenue > 0)
             .sort((a, b) => (b.total_revenue || 0) - (a.total_revenue || 0));
           
-          const inactiveCount = publishers.filter(p => !p.total_revenue || p.total_revenue === 0).length;
+          const inactiveCount = allPublishers.filter(p => !p.total_revenue || p.total_revenue === 0).length;
           
           // Calculate tiers based on cumulative GMV
           let cumGMV = 0;
