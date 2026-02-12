@@ -3,7 +3,6 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "lucide-react";
 
 const statusColors = {
   completed: { bg: "bg-emerald-50", text: "text-emerald-700", label: "已完成" },

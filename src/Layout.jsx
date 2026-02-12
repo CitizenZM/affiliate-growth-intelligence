@@ -4,7 +4,7 @@ import { createPageUrl } from "./utils";
 import {
   LayoutDashboard, Upload, Filter, PieChart, BarChart3,
   ScatterChart, ShieldCheck, Layers, ListChecks, CalendarRange,
-  FileText, Database, ChevronLeft, ChevronRight, Menu, X,
+  FileText, Database, ChevronLeft, ChevronRight, Menu,
   Download, Globe, Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";

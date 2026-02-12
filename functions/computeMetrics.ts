@@ -19,8 +19,16 @@ Deno.serve(async (req) => {
       started_at: new Date().toISOString(),
     });
 
-    // Get all publishers for this dataset
-    const publishers = await base44.asServiceRole.entities.Publisher.filter({ dataset_id });
+    // Get all publishers for this dataset and deduplicate by normalized id/name.
+    const rawPublishers = await base44.asServiceRole.entities.Publisher.filter({ dataset_id });
+    const publisherByKey = new Map<string, any>();
+    for (const pub of rawPublishers) {
+      const dedupeKey = pub.publisher_id_norm || pub.publisher_id || pub.publisher_name || pub.id;
+      if (!dedupeKey) continue;
+      // Keep the latest record for repeated imports of the same dataset.
+      publisherByKey.set(dedupeKey, pub);
+    }
+    const publishers = Array.from(publisherByKey.values());
 
     if (publishers.length === 0) {
       throw new Error('No publishers found for dataset');
@@ -32,7 +40,7 @@ Deno.serve(async (req) => {
     const total_publishers = publishers.length;
     const active_publishers = publishers.filter(p => (p.total_revenue || 0) > 0);
     const active_count = active_publishers.length;
-    const active_ratio = active_count / total_publishers;
+    const active_ratio = total_publishers > 0 ? active_count / total_publishers : 0;
     
     const total_gmv = publishers.reduce((sum, p) => sum + (p.total_revenue || 0), 0);
     const gmv_per_active = active_count > 0 ? total_gmv / active_count : 0;
@@ -145,7 +153,7 @@ Deno.serve(async (req) => {
           rank: i + 1,
           name: p.publisher_name || p.publisher_id,
           gmv: `$${((p.total_revenue || 0) / 1000).toFixed(1)}K`,
-          pct: `${((p.total_revenue || 0) / total_gmv * 100).toFixed(1)}%`,
+          pct: `${(total_gmv > 0 ? ((p.total_revenue || 0) / total_gmv * 100) : 0).toFixed(1)}%`,
           cumPct: `${(cumPct * 100).toFixed(1)}%`,
         };
       }),
@@ -188,8 +196,8 @@ Deno.serve(async (req) => {
       type,
       count: data.count,
       gmv: data.gmv,
-      count_share: (data.count / active_count * 100).toFixed(1) + '%',
-      gmv_share: (data.gmv / total_gmv * 100).toFixed(1) + '%',
+      count_share: (active_count > 0 ? (data.count / active_count * 100) : 0).toFixed(1) + '%',
+      gmv_share: (total_gmv > 0 ? (data.gmv / total_gmv * 100) : 0).toFixed(1) + '%',
     }));
 
     await base44.asServiceRole.entities.EvidenceTable.create({
@@ -205,7 +213,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.MetricSnapshot.create({
         dataset_id,
         metric_key: `${item.type}_share`,
-        value_num: item.gmv / total_gmv,
+        value_num: total_gmv > 0 ? item.gmv / total_gmv : 0,
         calc_version,
         module_id: 3,
       });

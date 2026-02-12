@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Eye, ChevronRight, Sparkles, Loader2 } from "lucide-react";
+import { FileText, Download, Eye, Sparkles, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import DatasetSelector from "../components/dashboard/DatasetSelector";

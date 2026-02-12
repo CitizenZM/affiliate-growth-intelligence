@@ -1,6 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
+  let requestBody: {
+    dataset_id?: string;
+    file_url?: string;
+    field_mapping?: Record<string, string>;
+    cleaning_options?: Record<string, unknown>;
+  } = {};
+
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -8,7 +15,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { dataset_id, file_url, field_mapping, cleaning_options } = await req.json();
+    requestBody = await req.json();
+    const { dataset_id, file_url, field_mapping, cleaning_options } = requestBody;
 
     if (!dataset_id || !file_url) {
       return Response.json({ error: 'Missing dataset_id or file_url' }, { status: 400 });
@@ -109,23 +117,24 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Process dataset error:', error);
     
-    // Update dataset status to error (reparse the body if needed)
+    // Update dataset status to error.
     try {
       const base44 = createClientFromRequest(req);
-      const bodyText = await req.text();
-      const body = JSON.parse(bodyText);
-      const dataset_id = body.dataset_id;
+      const dataset_id = requestBody.dataset_id;
       
       if (dataset_id) {
         await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
           status: 'error',
-          processing_step: `Error: ${error.message}`,
+          processing_step: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         });
       }
     } catch (updateError) {
       console.error('Failed to update dataset status:', updateError);
     }
 
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json(
+      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 });

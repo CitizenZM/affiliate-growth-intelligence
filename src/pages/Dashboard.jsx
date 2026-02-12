@@ -9,7 +9,6 @@ import InsightsPanel from "../components/dashboard/InsightsPanel";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Sparkles, Loader2, Database } from "lucide-react";
-import { motion } from "framer-motion";
 
 export default function Dashboard() {
   const [selectedDatasetId, setSelectedDatasetId] = useState(null);

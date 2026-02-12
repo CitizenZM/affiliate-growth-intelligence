@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
       metrics,
       publishers,
       totalPublishers: publishers.length,
-      activePublishers: publishers.filter(p => p.is_active).length,
+      activePublishers: publishers.filter(p => (p.total_revenue || 0) > 0).length,
       totalGMV: publishers.reduce((sum, p) => sum + (p.total_revenue || 0), 0),
     };
 
@@ -90,7 +90,7 @@ async function generatePDF(sections, dataset, analyticsData) {
   doc.setFontSize(9);
   const activeRatio = analyticsData.metrics.find(m => m.metric_key === 'active_ratio')?.value_num || 0;
   const top10Share = analyticsData.metrics.find(m => m.metric_key === 'top10_share')?.value_num || 0;
-  const approvalRate = analyticsData.metrics.find(m => m.metric_key === 'avg_approval_rate')?.value_num || 0;
+  const approvalRate = analyticsData.metrics.find(m => m.metric_key === 'approval_rate')?.value_num || 0;
   
   doc.text(`Total Publishers: ${analyticsData.totalPublishers}`, 20, y);
   doc.text(`Active Publishers: ${analyticsData.activePublishers}`, 80, y);
@@ -215,7 +215,7 @@ function generateMarkdown(sections, dataset, analyticsData) {
   markdown += `## Overview Statistics\n\n`;
   const activeRatio = analyticsData.metrics.find(m => m.metric_key === 'active_ratio')?.value_num || 0;
   const top10Share = analyticsData.metrics.find(m => m.metric_key === 'top10_share')?.value_num || 0;
-  const approvalRate = analyticsData.metrics.find(m => m.metric_key === 'avg_approval_rate')?.value_num || 0;
+  const approvalRate = analyticsData.metrics.find(m => m.metric_key === 'approval_rate')?.value_num || 0;
   
   markdown += `- **Total Publishers:** ${analyticsData.totalPublishers}\n`;
   markdown += `- **Active Publishers:** ${analyticsData.activePublishers}\n`;

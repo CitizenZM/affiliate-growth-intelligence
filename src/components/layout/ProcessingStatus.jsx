@@ -1,5 +1,5 @@
 import React from "react";
-import { Circle, CheckCircle2, AlertCircle } from "lucide-react";
+import { Circle, AlertCircle } from "lucide-react";
 
 export default function ProcessingStatus({ 
   status, 

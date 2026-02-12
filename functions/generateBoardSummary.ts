@@ -24,9 +24,8 @@ Deno.serve(async (req) => {
 
     // Get key metrics
     const activeRatio = metrics.find(m => m.metric_key === 'active_ratio')?.value_num || 0;
-    const coreDriverRatio = metrics.find(m => m.metric_key === 'core_driver_ratio')?.value_num || 0;
     const top10Share = metrics.find(m => m.metric_key === 'top10_share')?.value_num || 0;
-    const approvalRate = metrics.find(m => m.metric_key === 'avg_approval_rate')?.value_num || 0;
+    const approvalRate = metrics.find(m => m.metric_key === 'approval_rate')?.value_num || 0;
     const totalGMV = publishers.reduce((sum, p) => sum + (p.total_revenue || 0), 0);
 
     // Get executive summary

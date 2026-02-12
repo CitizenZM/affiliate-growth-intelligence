@@ -80,10 +80,19 @@ export default function DataLoader({
     );
   }
 
+  const pickLatest = (records) => {
+    if (!records || records.length === 0) return null;
+    return [...records].sort((a, b) => {
+      const aTime = new Date(a.updated_date || a.created_date || 0).getTime();
+      const bTime = new Date(b.updated_date || b.created_date || 0).getTime();
+      return bTime - aTime;
+    })[0];
+  };
+
   // Helper functions passed to children
-  const getMetric = (key) => metrics.find(m => m.metric_key === key)?.value_num || 0;
-  const getTable = (key) => evidenceTables.find(t => t.table_key === key)?.data_json || [];
-  const getSection = (id) => sections.find(s => s.section_id === id);
+  const getMetric = (key) => pickLatest(metrics.filter(m => m.metric_key === key))?.value_num || 0;
+  const getTable = (key) => pickLatest(evidenceTables.filter(t => t.table_key === key))?.data_json || [];
+  const getSection = (id) => pickLatest(sections.filter(s => s.section_id === id));
 
   return children({ 
     metrics, 

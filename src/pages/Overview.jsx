@@ -6,8 +6,7 @@ import RiskOpportunityCard from "../components/dashboard/RiskOpportunityCard";
 import DatasetSelector from "../components/dashboard/DatasetSelector";
 import DataLoader from "../components/dashboard/DataLoader";
 import { Button } from "@/components/ui/button";
-import { FileText, Sparkles, ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { FileText, ArrowRight } from "lucide-react";
 
 export default function Overview() {
   const [selectedDataset, setSelectedDataset] = useState(null);

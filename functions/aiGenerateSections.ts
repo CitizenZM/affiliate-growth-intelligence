@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       const progress = 55 + Math.round((idx / totalSections) * 45);
       await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
         processing_progress: progress,
-        processing_step: `Generating section ${sectionId + 1}/${totalSections + 1}...`,
+        processing_step: `Generating section ${idx + 1}/${totalSections}...`,
       });
 
       const systemPrompt = `You are an expert affiliate marketing analyst. Analyze the provided metrics and evidence tables to generate insights.
@@ -134,7 +134,7 @@ ${evidenceContext}`;
         conclusionStatus = approvalRate < 0.75 ? 'bad' : approvalRate < 0.85 ? 'warning' : 'good';
       }
 
-      await base44.asServiceRole.entities.ReportSection.create({
+      const payload = {
         dataset_id,
         section_id: sectionId,
         title: config.title,
@@ -144,7 +144,17 @@ ${evidenceContext}`;
         key_findings: result.key_findings || result.findings || [],
         derivation_notes: result.derivation_notes || [],
         ai_generated: true,
+      };
+
+      const existingSection = await base44.asServiceRole.entities.ReportSection.filter({
+        dataset_id,
+        section_id: sectionId,
       });
+      if (existingSection.length > 0) {
+        await base44.asServiceRole.entities.ReportSection.update(existingSection[0].id, payload);
+      } else {
+        await base44.asServiceRole.entities.ReportSection.create(payload);
+      }
 
       generatedSections.push(sectionId);
 
@@ -153,7 +163,7 @@ ${evidenceContext}`;
         const datasets = await base44.asServiceRole.entities.DataUpload.filter({ id: dataset_id });
         if (datasets.length > 0) {
           const currentDataset = datasets[0];
-          const updatedSections = [...(currentDataset.sections_ready || []), sectionId];
+          const updatedSections = Array.from(new Set([...(currentDataset.sections_ready || []), sectionId]));
           await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
             sections_ready: updatedSections,
           });
