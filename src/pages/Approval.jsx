@@ -58,11 +58,11 @@ export default function Approval() {
             { name: "Declined", value: declinedGMV, fill: "#DC2626", label: `$${(declinedGMV / 1000).toFixed(0)}K` },
           ];
 
-          // Find high-decline publishers from table
+          // Find top 5 publishers by declined amount
           const riskPublishers = approvalTable
-            .filter(p => p.decline_rate && p.decline_rate > 0.5)
+            .filter(p => p.declined_revenue > 0)
             .sort((a, b) => b.declined_revenue - a.declined_revenue)
-            .slice(0, 3)
+            .slice(0, 5)
             .map(p => ({
               name: p.publisher_name,
               declined: `$${(p.declined_revenue / 1000).toFixed(0)}K`,
