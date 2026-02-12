@@ -1,24 +1,19 @@
 import React from "react";
-import { CheckCircle2, Clock, AlertCircle, Loader2 } from "lucide-react";
+import { Circle } from "lucide-react";
 
 export default function ProgressIndicator({ sectionId, sectionsReady = [], status, isProcessing }) {
   const isReady = sectionsReady.includes(sectionId);
   
-  // Show loading if processing and not yet ready
-  if (isProcessing && !isReady) {
-    return <Loader2 className="w-3 h-3 text-blue-500 animate-spin" />;
-  }
-  
-  // Show check if ready
+  // Show green if ready
   if (isReady) {
-    return <CheckCircle2 className="w-3 h-3 text-green-500" />;
+    return <Circle className="w-3 h-3 fill-green-500 text-green-500" />;
   }
   
-  // Show error if status is error
-  if (status === 'error') {
-    return <AlertCircle className="w-3 h-3 text-red-500" />;
+  // Show yellow if processing and not yet ready
+  if (isProcessing && !isReady) {
+    return <Circle className="w-3 h-3 fill-yellow-500 text-yellow-500 animate-pulse" />;
   }
   
-  // Show waiting otherwise
-  return <Clock className="w-3 h-3 text-slate-300" />;
+  // Show gray otherwise
+  return <Circle className="w-3 h-3 fill-slate-300 text-slate-300" />;
 }
