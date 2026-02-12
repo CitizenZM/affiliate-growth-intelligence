@@ -225,6 +225,30 @@ Deno.serve(async (req) => {
       module_id: 5,
     });
 
+    await base44.asServiceRole.entities.MetricSnapshot.create({
+      dataset_id,
+      metric_key: 'total_approved_gmv',
+      value_num: total_approved,
+      calc_version,
+      module_id: 5,
+    });
+
+    await base44.asServiceRole.entities.MetricSnapshot.create({
+      dataset_id,
+      metric_key: 'total_pending_gmv',
+      value_num: total_pending,
+      calc_version,
+      module_id: 5,
+    });
+
+    await base44.asServiceRole.entities.MetricSnapshot.create({
+      dataset_id,
+      metric_key: 'total_declined_gmv',
+      value_num: total_declined,
+      calc_version,
+      module_id: 5,
+    });
+
     await base44.asServiceRole.entities.EvidenceTable.create({
       dataset_id,
       table_key: 'approval_waterfall',
@@ -236,6 +260,28 @@ Deno.serve(async (req) => {
       ],
       module_id: 5,
       row_count: 4,
+    });
+
+    // Approval detail table - sort by decline rate descending
+    const approvalDetail = publishers
+      .filter(p => (p.total_revenue || 0) > 0)
+      .map(p => ({
+        publisher_name: p.publisher_name || p.publisher_id || 'Unknown',
+        total_revenue: p.total_revenue || 0,
+        approved_revenue: p.approved_revenue || 0,
+        pending_revenue: p.pending_revenue || 0,
+        declined_revenue: p.declined_revenue || 0,
+        approval_rate: (p.total_revenue || 0) > 0 ? (p.approved_revenue || 0) / (p.total_revenue || 0) : 0,
+        decline_rate: (p.total_revenue || 0) > 0 ? (p.declined_revenue || 0) / (p.total_revenue || 0) : 0,
+      }))
+      .sort((a, b) => b.decline_rate - a.decline_rate);
+
+    await base44.asServiceRole.entities.EvidenceTable.create({
+      dataset_id,
+      table_key: 'approval_table',
+      data_json: approvalDetail,
+      module_id: 5,
+      row_count: approvalDetail.length,
     });
 
     // Complete job
