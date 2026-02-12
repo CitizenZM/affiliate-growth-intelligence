@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import InsightsPanel from "../components/dashboard/InsightsPanel";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { motion } from "framer-motion";
+import { createActionItem, listActionItems, updateActionItem } from "@/lib/actionItemService";
+import { isSupabaseEnabled } from "@/lib/supabaseClient";
 
 const statusConfig = {
   todo: { label: "To Do", bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-300" },
@@ -42,11 +43,11 @@ export default function ActionPlan() {
   const queryClient = useQueryClient();
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["actionItems"],
-    queryFn: () => base44.entities.ActionItem.list("-created_date", 100),
+    queryFn: listActionItems,
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.ActionItem.create(data),
+    mutationFn: createActionItem,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["actionItems"] });
       setDialogOpen(false);
@@ -55,7 +56,7 @@ export default function ActionPlan() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.ActionItem.update(id, data),
+    mutationFn: ({ id, data }) => updateActionItem(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["actionItems"] }),
   });
 
@@ -66,7 +67,10 @@ export default function ActionPlan() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">行动计划</h1>
-          <p className="text-sm text-slate-500 mt-1">从分析到执行的行动闭环管理</p>
+          <p className="text-sm text-slate-500 mt-1">
+            从分析到执行的行动闭环管理
+            {isSupabaseEnabled ? "（Supabase）" : "（Base44 fallback）"}
+          </p>
         </div>
         <div className="flex gap-2">
           <div className="flex bg-slate-100 rounded-lg p-0.5">
@@ -137,7 +141,11 @@ export default function ActionPlan() {
         </div>
       </div>
 
-      {view === "kanban" ? (
+      {isLoading ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-sm text-slate-500">
+          加载行动项中...
+        </div>
+      ) : view === "kanban" ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {kanbanColumns.map((col) => {
             const colItems = items.filter((i) => i.status === col);
