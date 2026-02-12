@@ -4,6 +4,8 @@ Deno.serve(async (req) => {
   let requestBody: {
     dataset_id?: string;
     file_url?: string;
+    parsed_rows?: Array<Record<string, unknown>>;
+    parsed_headers?: string[];
     field_mapping?: Record<string, string>;
     cleaning_options?: Record<string, unknown>;
   } = {};
@@ -16,10 +18,10 @@ Deno.serve(async (req) => {
     }
 
     requestBody = await req.json();
-    const { dataset_id, file_url, field_mapping, cleaning_options } = requestBody;
+    const { dataset_id, file_url, parsed_rows, parsed_headers, field_mapping, cleaning_options } = requestBody;
 
-    if (!dataset_id || !file_url) {
-      return Response.json({ error: 'Missing dataset_id or file_url' }, { status: 400 });
+    if (!dataset_id || (!file_url && !(parsed_rows && parsed_rows.length > 0))) {
+      return Response.json({ error: 'Missing dataset_id and input data (file_url or parsed_rows)' }, { status: 400 });
     }
 
     // Update dataset status with start time
@@ -41,6 +43,8 @@ Deno.serve(async (req) => {
     const parseResult = await base44.functions.invoke('parseCSV', { 
       dataset_id, 
       file_url,
+      parsed_rows,
+      parsed_headers,
       field_mapping,
       cleaning_options,
     });

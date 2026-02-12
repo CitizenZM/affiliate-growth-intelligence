@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { file_url, dataset_id, field_mapping, cleaning_options } = await req.json();
+    const { file_url, parsed_rows, parsed_headers, dataset_id, field_mapping, cleaning_options } = await req.json();
 
     // Update job status
     await base44.asServiceRole.entities.Job.create({
@@ -19,41 +19,58 @@ Deno.serve(async (req) => {
       started_at: new Date().toISOString(),
     });
 
-    // Fetch CSV file
-    const response = await fetch(file_url);
-    const csvText = await response.text();
+    let headers = [];
+    let rows = [];
 
-    // Parse CSV (handle quoted fields with commas)
-    const lines = csvText.trim().split('\n');
-    const parseCSVLine = (line) => {
-      const result = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          result.push(current.trim());
-          current = '';
-        } else {
-          current += char;
-        }
+    if (Array.isArray(parsed_rows) && parsed_rows.length > 0) {
+      // Preferred fallback path when remote file storage is unavailable.
+      rows = parsed_rows;
+      headers = Array.isArray(parsed_headers) && parsed_headers.length > 0
+        ? parsed_headers
+        : Object.keys(parsed_rows[0] || {});
+    } else {
+      if (!file_url) {
+        return Response.json({ error: 'Missing file_url or parsed_rows' }, { status: 400 });
       }
-      result.push(current.trim());
-      return result;
-    };
 
-    const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, ''));
-    const rows = [];
-    for (let i = 1; i < lines.length; i++) {
-      if (!lines[i].trim()) continue;
-      const values = parseCSVLine(lines[i]);
-      const row = {};
-      headers.forEach((header, idx) => {
-        row[header] = values[idx] ? values[idx].replace(/^"|"$/g, '') : null;
-      });
-      rows.push(row);
+      // Fetch CSV file
+      const response = await fetch(file_url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch uploaded file: ${response.status} ${response.statusText}`);
+      }
+      const csvText = await response.text();
+
+      // Parse CSV (handle quoted fields with commas)
+      const lines = csvText.trim().split('\n');
+      const parseCSVLine = (line) => {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim());
+        return result;
+      };
+
+      headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, ''));
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const values = parseCSVLine(lines[i]);
+        const row = {};
+        headers.forEach((header, idx) => {
+          row[header] = values[idx] ? values[idx].replace(/^"|"$/g, '') : null;
+        });
+        rows.push(row);
+      }
     }
 
     // Use provided field mapping or auto-detect

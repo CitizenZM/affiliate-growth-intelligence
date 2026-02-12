@@ -157,8 +157,14 @@ export default function InputPage() {
       setFieldMapping(autoMapping);
       
       // Upload file
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
-      setUploadResult({ file_url, file_name: f.name });
+      try {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
+        setUploadResult({ file_url, file_name: f.name, local_only: false });
+      } catch (uploadError) {
+        // Fallback: continue with locally parsed rows even if remote upload is unavailable.
+        console.warn("UploadFile failed, fallback to local parsed data:", uploadError);
+        setUploadResult({ file_url: null, file_name: f.name, local_only: true });
+      }
       
       // Auto advance to preview
       setStep(1);
@@ -208,7 +214,7 @@ export default function InputPage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const dataset = await base44.entities.DataUpload.create({
-        file_url: uploadResult?.file_url,
+        file_url: uploadResult?.file_url || undefined,
         file_name: uploadResult?.file_name,
         website_url: formData.websiteUrl || undefined,
         platform: formData.platform || undefined,
@@ -234,6 +240,8 @@ export default function InputPage() {
       base44.functions.invoke('processDataset', {
         dataset_id: dataset.id,
         file_url: uploadResult?.file_url,
+        parsed_rows: uploadResult?.local_only ? parsedData : undefined,
+        parsed_headers: uploadResult?.local_only ? headers : undefined,
         field_mapping: fieldMapping,
         cleaning_options: cleaningOptions,
       });
