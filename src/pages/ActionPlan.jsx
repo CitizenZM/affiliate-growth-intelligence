@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import InsightsPanel from "../components/dashboard/InsightsPanel";
+import DatasetSelector from "../components/dashboard/DatasetSelector";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, LayoutGrid, Table2, GripVertical, Calendar, User } from "lucide-react";
+import { Plus, LayoutGrid, Table2, GripVertical, Calendar, User, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,12 +39,36 @@ export default function ActionPlan() {
   const [view, setView] = useState("kanban");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newItem, setNewItem] = useState({ title: "", workstream: "other", priority: "medium", owner: "", due_date: "", notes: "" });
+  const [selectedDataset, setSelectedDataset] = useState(null);
+  const [generatingActions, setGeneratingActions] = useState(false);
 
   const queryClient = useQueryClient();
+  
+  const { data: datasets = [] } = useQuery({
+    queryKey: ['datasets'],
+    queryFn: () => base44.entities.DataUpload.list('-created_date', 50),
+    refetchInterval: 3000,
+  });
+
+  const { data: sections = [] } = useQuery({
+    queryKey: ['sections', selectedDataset],
+    queryFn: () => base44.entities.ReportSection.filter({ dataset_id: selectedDataset }),
+    enabled: !!selectedDataset,
+    refetchInterval: 3000,
+  });
+
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["actionItems"],
     queryFn: () => base44.entities.ActionItem.list("-created_date", 100),
   });
+
+  // Auto-select latest completed dataset
+  useEffect(() => {
+    if (datasets.length > 0 && !selectedDataset) {
+      const latest = datasets.find(d => d.status === 'completed') || datasets[0];
+      setSelectedDataset(latest?.id);
+    }
+  }, [datasets, selectedDataset]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.ActionItem.create(data),
@@ -59,6 +84,52 @@ export default function ActionPlan() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["actionItems"] }),
   });
 
+  const generateActionsMutation = useMutation({
+    mutationFn: async () => {
+      const allFindings = sections
+        .flatMap(s => s.key_findings || [])
+        .filter(f => f.type === 'risk' || f.type === 'opportunity');
+
+      const actions = [];
+      for (const finding of allFindings.slice(0, 10)) {
+        const workstream = finding.title?.includes('内容') ? 'content_expansion' :
+                          finding.title?.includes('Deal') || finding.title?.includes('优惠') ? 'deal_optimization' :
+                          finding.title?.includes('社交') || finding.title?.includes('视频') ? 'social_video' :
+                          finding.title?.includes('Tier') || finding.title?.includes('分层') ? 'tier_management' :
+                          finding.title?.includes('治理') ? 'governance' : 'other';
+        
+        const priority = finding.type === 'risk' ? 'high' : 'medium';
+
+        actions.push({
+          title: finding.action || finding.title,
+          workstream,
+          priority,
+          status: 'todo',
+          evidence_link: finding.evidence_link,
+          notes: `来源: ${finding.trigger || '数据分析'}`,
+        });
+      }
+
+      for (const action of actions) {
+        await base44.entities.ActionItem.create(action);
+      }
+
+      return actions.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["actionItems"] });
+      setGeneratingActions(false);
+    },
+    onError: () => {
+      setGeneratingActions(false);
+    }
+  });
+
+  const handleGenerateActions = () => {
+    setGeneratingActions(true);
+    generateActionsMutation.mutate();
+  };
+
   const kanbanColumns = ["todo", "doing", "done"];
 
   return (
@@ -69,6 +140,17 @@ export default function ActionPlan() {
           <p className="text-sm text-slate-500 mt-1">从分析到执行的行动闭环管理</p>
         </div>
         <div className="flex gap-2">
+          <DatasetSelector value={selectedDataset} onChange={setSelectedDataset} />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-1.5 text-xs"
+            onClick={handleGenerateActions}
+            disabled={!selectedDataset || generatingActions || sections.length === 0}
+          >
+            <Sparkles className="w-3.5 h-3.5" /> 
+            {generatingActions ? "生成中..." : "AI 生成行动"}
+          </Button>
           <div className="flex bg-slate-100 rounded-lg p-0.5">
             <button onClick={() => setView("kanban")} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "kanban" ? "bg-white shadow-sm text-slate-800" : "text-slate-500"}`}>
               <LayoutGrid className="w-3.5 h-3.5 inline mr-1" /> 看板
