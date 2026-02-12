@@ -14,27 +14,48 @@ import { motion } from "framer-motion";
 export default function Dashboard() {
   const [selectedDatasetId, setSelectedDatasetId] = useState(null);
 
-  // Get all datasets
+  // Get all datasets with timeout
   const { data: datasets = [], isLoading: datasetsLoading } = useQuery({
     queryKey: ['datasets'],
-    queryFn: () => base44.entities.DataUpload.list('-created_date', 50),
+    queryFn: async () => {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('数据加载超时（>10秒），请刷新页面')), 10000)
+      );
+      const dataPromise = base44.entities.DataUpload.list('-created_date', 50);
+      return Promise.race([dataPromise, timeoutPromise]);
+    },
     refetchInterval: 3000,
+    retry: 1,
   });
 
-  // Get metrics for selected dataset
+  // Get metrics for selected dataset with timeout
   const { data: metrics = [], isLoading: metricsLoading } = useQuery({
     queryKey: ['metrics', selectedDatasetId],
-    queryFn: () => base44.entities.MetricSnapshot.filter({ dataset_id: selectedDatasetId }),
+    queryFn: async () => {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('指标数据加载超时（>10秒），请检查数据处理状态')), 10000)
+      );
+      const dataPromise = base44.entities.MetricSnapshot.filter({ dataset_id: selectedDatasetId });
+      return Promise.race([dataPromise, timeoutPromise]);
+    },
     enabled: !!selectedDatasetId,
     refetchInterval: 3000,
+    retry: 1,
   });
 
-  // Get report sections for risks/opportunities
+  // Get report sections for risks/opportunities with timeout
   const { data: sections = [] } = useQuery({
     queryKey: ['sections', selectedDatasetId],
-    queryFn: () => base44.entities.ReportSection.filter({ dataset_id: selectedDatasetId }),
+    queryFn: async () => {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('报告数据加载超时（>10秒）')), 10000)
+      );
+      const dataPromise = base44.entities.ReportSection.filter({ dataset_id: selectedDatasetId });
+      return Promise.race([dataPromise, timeoutPromise]);
+    },
     enabled: !!selectedDatasetId,
     refetchInterval: 3000,
+    retry: 1,
   });
 
   // Auto-select latest completed dataset
