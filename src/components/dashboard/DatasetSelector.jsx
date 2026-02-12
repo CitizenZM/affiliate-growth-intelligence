@@ -15,8 +15,15 @@ const statusColors = {
 export default function DatasetSelector({ value, onChange }) {
   const { data: datasets = [], isLoading } = useQuery({
     queryKey: ['datasets'],
-    queryFn: () => base44.entities.DataUpload.list('-created_date', 50),
+    queryFn: async () => {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('数据加载超时（>10秒），请刷新页面')), 10000)
+      );
+      const dataPromise = base44.entities.DataUpload.list('-created_date', 50);
+      return Promise.race([dataPromise, timeoutPromise]);
+    },
     refetchInterval: 3000,
+    retry: 1,
   });
 
   // Auto-select latest completed dataset
