@@ -12,7 +12,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import ProgressIndicator from "@/components/layout/ProgressIndicator";
 import ProcessingStatus from "@/components/layout/ProcessingStatus";
-import { useLanguage } from "@/components/LanguageContext";
+import { LanguageProvider, useLanguage } from "@/components/LanguageContext";
 
 const getNavItems = (t) => [
   { name: "Overview", page: "Dashboard", icon: LayoutDashboard, label: t('nav.overview'), sectionId: 0 },
@@ -29,7 +29,7 @@ const getNavItems = (t) => [
   { name: "DataCenter", page: "DataCenter", icon: Database, label: t('nav.dataCenter'), sectionId: null },
 ];
 
-export default function Layout({ children, currentPageName }) {
+function LayoutContent({ children, currentPageName }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [latestDataset, setLatestDataset] = useState(null);
