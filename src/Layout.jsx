@@ -29,7 +29,7 @@ const getNavItems = (t) => [
   { name: "DataCenter", page: "DataCenter", icon: Database, label: t('nav.dataCenter'), sectionId: null },
 ];
 
-function LayoutContent({ children, currentPageName }) {
+const LayoutContent = ({ children, currentPageName }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [latestDataset, setLatestDataset] = useState(null);
@@ -230,12 +230,14 @@ function LayoutContent({ children, currentPageName }) {
       </div>
     </div>
   );
-}
+};
 
-export default function Layout({ children, currentPageName }) {
+const Layout = ({ children, currentPageName }) => {
   return (
     <LanguageProvider>
       <LayoutContent children={children} currentPageName={currentPageName} />
     </LanguageProvider>
   );
-}
+};
+
+export default Layout;
