@@ -54,5 +54,5 @@ export const appParams = {
 }
 
 export const isBase44Configured = Boolean(
-	appParams.appId && appParams.appBaseUrl
+	import.meta.env.VITE_BASE44_APP_ID && import.meta.env.VITE_BASE44_APP_BASE_URL
 );
