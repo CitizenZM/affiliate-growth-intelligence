@@ -243,8 +243,8 @@ export default function InputPage() {
       base44.functions.invoke('processDataset', {
         dataset_id: dataset.id,
         file_url: uploadResult?.file_url,
-        parsed_rows: uploadResult?.local_only ? parsedData : undefined,
-        parsed_headers: uploadResult?.local_only ? headers : undefined,
+        parsed_rows: parsedData || undefined,
+        parsed_headers: headers || undefined,
         field_mapping: fieldMapping,
         cleaning_options: cleaningOptions,
       });

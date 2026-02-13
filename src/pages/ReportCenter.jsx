@@ -95,8 +95,26 @@ export default function ReportCenter() {
       
       toast.success('下载成功');
     } catch (error) {
-      console.error('Download error:', error);
-      toast.error('下载失败: ' + error.message);
+      const markdown = [
+        `# Affiliate Growth Intelligence Report`,
+        `Generated at: ${new Date().toISOString()}`,
+        ``,
+        ...chapters.map((ch) => {
+          const sec = sections.find((s) => s.section_id === ch.id);
+          return `## ${ch.id}. ${ch.title}\n${sec?.conclusion || ''}\n\n${sec?.content_md || ''}`;
+        }),
+      ].join("\n");
+      const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Affiliate-Report.md";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      console.warn("Report endpoint unavailable, used local markdown fallback:", error);
+      toast.success('接口不可用，已导出本地 Markdown 报告');
     } finally {
       setDownloading(null);
     }
@@ -137,8 +155,21 @@ export default function ReportCenter() {
       
       toast.success('Board 摘要已下载');
     } catch (error) {
-      console.error('Board summary error:', error);
-      toast.error('生成失败: ' + error.message);
+      const topConclusion = sections.find((s) => s.section_id === 0)?.conclusion || "暂无结论";
+      const blob = new Blob(
+        [`Board Summary\n\n${topConclusion}\n`],
+        { type: "text/plain;charset=utf-8" }
+      );
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Board-Summary.txt";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      console.warn("Board endpoint unavailable, used local fallback:", error);
+      toast.success('接口不可用，已导出本地摘要');
     } finally {
       setDownloading(null);
     }
