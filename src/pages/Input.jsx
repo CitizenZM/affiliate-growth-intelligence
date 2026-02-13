@@ -29,6 +29,7 @@ export default function InputPage() {
   const [uploadResult, setUploadResult] = useState(null);
   const [processingDatasetId, setProcessingDatasetId] = useState(null);
   const [autoNavigated, setAutoNavigated] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   
   // Parsed data
   const [parsedData, setParsedData] = useState(null);
@@ -242,6 +243,7 @@ export default function InputPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      setSubmitError("");
       const dataset = await dataClient.entities.DataUpload.create({
         file_url: uploadResult?.file_url || undefined,
         file_name: uploadResult?.file_name,
@@ -292,6 +294,12 @@ export default function InputPage() {
     onSuccess: (dataset) => {
       setProcessingDatasetId(dataset.id);
       setAutoNavigated(false);
+    },
+    onError: (error) => {
+      const msg =
+        error?.message ||
+        "提交失败。请检查 Supabase schema 是否已执行（dataset_runs / analysis_* / action_items）。";
+      setSubmitError(msg);
     },
   });
 
@@ -482,6 +490,13 @@ export default function InputPage() {
                     <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
                       <p className="text-sm text-emerald-700 font-medium">✓ 已提交，系统正在后台处理</p>
                       <p className="text-xs text-emerald-600 mt-1">处理流程：解析 → 清洗 → 计算指标 → AI 生成分析</p>
+                    </div>
+                  )}
+
+                  {submitError && (
+                    <div className="bg-red-50 rounded-lg p-3 border border-red-200">
+                      <p className="text-sm text-red-700 font-medium">提交失败</p>
+                      <p className="text-xs text-red-600 mt-1 break-all">{submitError}</p>
                     </div>
                   )}
 
