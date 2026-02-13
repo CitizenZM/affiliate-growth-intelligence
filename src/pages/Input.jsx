@@ -15,6 +15,7 @@ import FieldMapper from "../components/input/FieldMapper";
 import DataCleaning from "../components/input/DataCleaning";
 import HistoryPanel from "../components/input/HistoryPanel";
 import { syncDatasetRun } from "@/lib/supabasePipelineService";
+import { isBase44Configured } from "@/lib/app-params";
 
 const STEPS = ["上传文件", "预览&映射", "数据清洗", "补充信息"];
 
@@ -157,13 +158,18 @@ export default function InputPage() {
       }
       setFieldMapping(autoMapping);
       
-      // Upload file
-      try {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
-        setUploadResult({ file_url, file_name: f.name, local_only: false });
-      } catch (uploadError) {
-        // Fallback: continue with locally parsed rows even if remote upload is unavailable.
-        console.warn("UploadFile failed, fallback to local parsed data:", uploadError);
+      if (isBase44Configured) {
+        // Upload file to Base44 only when backend is configured.
+        try {
+          const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
+          setUploadResult({ file_url, file_name: f.name, local_only: false });
+        } catch (uploadError) {
+          // Fallback: continue with locally parsed rows even if remote upload is unavailable.
+          console.warn("UploadFile failed, fallback to local parsed data:", uploadError);
+          setUploadResult({ file_url: null, file_name: f.name, local_only: true });
+        }
+      } else {
+        // No Base44 backend in this deployment: always use local parsed rows.
         setUploadResult({ file_url: null, file_name: f.name, local_only: true });
       }
       
@@ -230,7 +236,7 @@ export default function InputPage() {
       syncDatasetRun(dataset).catch(() => {});
 
       // Scrape website if enabled (don't wait)
-      if (formData.webEnabled && formData.websiteUrl) {
+      if (isBase44Configured && formData.webEnabled && formData.websiteUrl) {
         base44.functions.invoke('scrapeWebsite', {
           website_url: formData.websiteUrl,
           dataset_id: dataset.id,
