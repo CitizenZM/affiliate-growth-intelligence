@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
       status: 'processing',
       processing_progress: 0,
-      processing_step: 'Parsing CSV',
+      processing_step: '开始处理...',
       processing_started_at: new Date().toISOString(),
       sections_ready: [],
     });
@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     console.log('Step 1: Parsing CSV...');
     await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
       processing_progress: 10,
-      processing_step: 'Parsing CSV...',
+      processing_step: '解析数据中...',
     });
 
     const parseResult = await base44.functions.invoke('parseCSV', { 
@@ -44,14 +44,14 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
       processing_progress: 25,
-      processing_step: 'CSV parsed successfully',
+      processing_step: '数据解析完成',
     });
 
     // Step 2: Compute Metrics (25-50%)
     console.log('Step 2: Computing metrics...');
     await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
       processing_progress: 30,
-      processing_step: 'Computing metrics...',
+      processing_step: '计算指标中...',
     });
 
     const computeResult = await base44.functions.invoke('computeMetrics', { 
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
       processing_progress: 50,
-      processing_step: 'Metrics computed',
+      processing_step: '指标计算完成',
     });
 
     // Step 3: AI Generate ALL Sections (50-100%)
@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     
     await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
       processing_progress: 55,
-      processing_step: 'Generating AI reports...',
+      processing_step: 'AI 生成报告中...',
     });
 
     const aiResult = await base44.functions.invoke('aiGenerateSections', { 
@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
       status: 'completed',
       processing_progress: 100,
-      processing_step: 'Completed',
+      processing_step: '全部完成',
       processing_completed_at: new Date().toISOString(),
       sections_ready: allSections,
     });

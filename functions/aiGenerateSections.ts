@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       const progress = 55 + Math.round((idx / totalSections) * 45);
       await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
         processing_progress: progress,
-        processing_step: `Generating section ${sectionId + 1}/${totalSections + 1}...`,
+        processing_step: `AI 生成章节 ${idx + 1}/${totalSections}...`,
       });
 
       const systemPrompt = `You are an expert affiliate marketing analyst. Analyze the provided metrics and evidence tables to generate insights.
