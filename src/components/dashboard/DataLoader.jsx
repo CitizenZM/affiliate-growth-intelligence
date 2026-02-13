@@ -86,6 +86,16 @@ export default function DataLoader({
     );
   }
 
+  if (datasetId && !isLoading && metrics.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertCircle className="w-12 h-12 text-amber-300 mb-3" />
+        <p className="text-sm text-slate-700">当前数据集暂无可用计算结果</p>
+        <p className="text-xs text-slate-500 mt-1">请在 Input 页重新上传并等待处理完成（status = completed）</p>
+      </div>
+    );
+  }
+
   const pickLatest = (records) => {
     if (!records || records.length === 0) return null;
     return [...records].sort((a, b) => {
