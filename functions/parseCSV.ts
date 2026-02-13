@@ -20,8 +20,18 @@ Deno.serve(async (req) => {
     });
 
     // Fetch CSV file
+    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+      processing_progress: 12,
+      processing_step: '下载文件中...',
+    });
+    
     const response = await fetch(file_url);
     const csvText = await response.text();
+
+    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+      processing_progress: 15,
+      processing_step: '解析CSV格式...',
+    });
 
     // Parse CSV (handle quoted fields with commas)
     const lines = csvText.trim().split('\n');
@@ -85,6 +95,11 @@ Deno.serve(async (req) => {
     }
 
     // Save Publisher rows with cleaning
+    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+      processing_progress: 18,
+      processing_step: '清洗数据中...',
+    });
+    
     const publishers = [];
     const seen = new Set();
     const cleanOpts = cleaning_options || {};
@@ -145,6 +160,11 @@ Deno.serve(async (req) => {
 
     // Bulk create publishers (use bulkCreate if available, otherwise batch)
     if (publishers.length > 0) {
+      await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+        processing_progress: 20,
+        processing_step: `保存 ${publishers.length} 条记录...`,
+      });
+      
       try {
         // Try bulk create (may not be available in all SDK versions)
         await base44.asServiceRole.entities.Publisher.bulkCreate(publishers);
@@ -153,6 +173,12 @@ Deno.serve(async (req) => {
         const batchSize = 10;
         for (let i = 0; i < publishers.length; i += batchSize) {
           const batch = publishers.slice(i, i + batchSize);
+          const progress = 20 + Math.round((i / publishers.length) * 5);
+          await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+            processing_progress: progress,
+            processing_step: `保存中 ${i}/${publishers.length}...`,
+          });
+          
           await Promise.all(batch.map(pub => 
             base44.asServiceRole.entities.Publisher.create(pub).catch(e => {
               console.error('Failed to create publisher:', pub.publisher_name, e);
