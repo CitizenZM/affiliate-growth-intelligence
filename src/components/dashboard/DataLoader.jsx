@@ -19,7 +19,7 @@ export default function DataLoader({
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!datasetId,
-    refetchInterval: 3000,
+    refetchInterval: 10000,
     retry: 1,
   });
 
@@ -33,7 +33,7 @@ export default function DataLoader({
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!datasetId,
-    refetchInterval: 3000,
+    refetchInterval: 10000,
     retry: 1,
   });
 
@@ -47,7 +47,7 @@ export default function DataLoader({
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!datasetId,
-    refetchInterval: 3000,
+    refetchInterval: 10000,
     retry: 1,
   });
 
@@ -61,7 +61,7 @@ export default function DataLoader({
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!datasetId,
-    refetchInterval: 3000,
+    refetchInterval: 10000,
     retry: 1,
   });
 
