@@ -66,23 +66,34 @@ export default function ReportCenter() {
 
     setDownloading(format);
     try {
-      const response = await fetch(`${window.location.origin}/api/functions/generateReport`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('base44_token')}`,
-        },
-        body: JSON.stringify({
-          dataset_id: datasetId,
-          format: format.toLowerCase(),
-        }),
+      const { data } = await base44.functions.invoke('generateReport', {
+        dataset_id: datasetId,
+        format: format.toLowerCase(),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate report');
+      // Convert base64 or arraybuffer to blob
+      let blob;
+      if (typeof data === 'string') {
+        // If data is base64
+        const binaryString = atob(data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        blob = new Blob([bytes], { 
+          type: format === 'PDF' ? 'application/pdf' : 'text/markdown' 
+        });
+      } else if (data instanceof ArrayBuffer) {
+        blob = new Blob([data], { 
+          type: format === 'PDF' ? 'application/pdf' : 'text/markdown' 
+        });
+      } else {
+        // If data is already a blob or we got the response directly
+        blob = new Blob([data], { 
+          type: format === 'PDF' ? 'application/pdf' : 'text/markdown' 
+        });
       }
 
-      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -109,22 +120,25 @@ export default function ReportCenter() {
 
     setDownloading('board');
     try {
-      const response = await fetch(`${window.location.origin}/api/functions/generateBoardSummary`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('base44_token')}`,
-        },
-        body: JSON.stringify({
-          dataset_id: datasetId,
-        }),
+      const { data } = await base44.functions.invoke('generateBoardSummary', {
+        dataset_id: datasetId,
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate board summary');
+      // Convert response to blob
+      let blob;
+      if (typeof data === 'string') {
+        const binaryString = atob(data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        blob = new Blob([bytes], { type: 'application/pdf' });
+      } else if (data instanceof ArrayBuffer) {
+        blob = new Blob([data], { type: 'application/pdf' });
+      } else {
+        blob = new Blob([data], { type: 'application/pdf' });
       }
 
-      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
