@@ -211,6 +211,15 @@ async function processDataset(payload = {}) {
   });
 
   const { rows } = sanitizeRows(parsedRows, fieldMapping, parsedHeaders);
+  await upsertDataset({
+    id: datasetId,
+    status: "processing",
+    processing_progress: 35,
+    processing_step: "清洗数据并构建指标...",
+    sections_ready: [],
+    field_mapping: fieldMapping,
+    row_count: parsedRows.length,
+  });
   const total = rows.length;
   const activeRows = rows.filter((r) => r.total_revenue > 0);
   const active = activeRows.length;
@@ -372,6 +381,15 @@ async function processDataset(payload = {}) {
   }));
 
   const metricMap = Object.fromEntries(metrics.map((r) => [r.metric_key, r.value_num]));
+  await upsertDataset({
+    id: datasetId,
+    status: "processing",
+    processing_progress: 70,
+    processing_step: "写入证据表与章节...",
+    sections_ready: [],
+    field_mapping: fieldMapping,
+    row_count: parsedRows.length,
+  });
   const sections = genSections(datasetId, metricMap);
 
   await overwriteAnalysis(datasetId, metrics, tables, sections);
