@@ -1,15 +1,17 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { dataClient } from "@/lib/dataClient";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Upload, ChevronRight, ChevronLeft, Loader2, FileSpreadsheet, History } from "lucide-react";
+import { Upload, ChevronRight, ChevronLeft, Loader2, FileSpreadsheet, History, CircleCheck, CircleAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "../utils";
 import FilePreview from "../components/input/FilePreview";
 import FieldMapper from "../components/input/FieldMapper";
 import DataCleaning from "../components/input/DataCleaning";
@@ -19,11 +21,14 @@ import { syncDatasetRun } from "@/lib/supabasePipelineService";
 const STEPS = ["上传文件", "预览&映射", "数据清洗", "补充信息"];
 
 export default function InputPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("upload");
   const [step, setStep] = useState(0);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
+  const [processingDatasetId, setProcessingDatasetId] = useState(null);
+  const [autoNavigated, setAutoNavigated] = useState(false);
   
   // Parsed data
   const [parsedData, setParsedData] = useState(null);
@@ -211,6 +216,30 @@ export default function InputPage() {
     setActiveTab("upload");
   };
 
+  const { data: processingDataset } = useQuery({
+    queryKey: ["dataset-processing", processingDatasetId],
+    queryFn: async () => {
+      if (!processingDatasetId) return null;
+      const rows = await dataClient.entities.DataUpload.filter({ id: processingDatasetId });
+      return rows[0] || null;
+    },
+    enabled: !!processingDatasetId,
+    refetchInterval: (query) => {
+      const status = query?.state?.data?.status;
+      if (!processingDatasetId) return false;
+      return status === "completed" || status === "error" ? 2000 : 1200;
+    },
+    retry: 1,
+  });
+
+  useEffect(() => {
+    if (!processingDataset || autoNavigated) return;
+    if (processingDataset.status === "completed") {
+      setAutoNavigated(true);
+      setTimeout(() => navigate(createPageUrl("Overview")), 500);
+    }
+  }, [processingDataset, autoNavigated, navigate]);
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const dataset = await dataClient.entities.DataUpload.create({
@@ -246,20 +275,23 @@ export default function InputPage() {
         parsed_headers: headers || undefined,
         field_mapping: fieldMapping,
         cleaning_options: cleaningOptions,
+      }).catch(async (error) => {
+        console.error("Processing failed:", error);
+        try {
+          await dataClient.entities.DataUpload.update(dataset.id, {
+            status: "error",
+            processing_step: error?.message || "处理失败",
+          });
+        } catch {
+          // noop
+        }
       });
 
       return dataset;
     },
-    onSuccess: () => {
-      setTimeout(() => {
-        setStep(0);
-        setFile(null);
-        setUploadResult(null);
-        setParsedData(null);
-        setHeaders([]);
-        setFieldMapping({});
-        setFormData({});
-      }, 2000);
+    onSuccess: (dataset) => {
+      setProcessingDatasetId(dataset.id);
+      setAutoNavigated(false);
     },
   });
 
@@ -450,6 +482,62 @@ export default function InputPage() {
                     <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
                       <p className="text-sm text-emerald-700 font-medium">✓ 已提交，系统正在后台处理</p>
                       <p className="text-xs text-emerald-600 mt-1">处理流程：解析 → 清洗 → 计算指标 → AI 生成分析</p>
+                    </div>
+                  )}
+
+                  {processingDatasetId && (
+                    <div
+                      className={`rounded-lg p-3 border ${
+                        processingDataset?.status === "error"
+                          ? "bg-red-50 border-red-200"
+                          : processingDataset?.status === "completed"
+                          ? "bg-emerald-50 border-emerald-200"
+                          : "bg-blue-50 border-blue-200"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {processingDataset?.status === "error" ? (
+                          <CircleAlert className="w-4 h-4 text-red-600" />
+                        ) : processingDataset?.status === "completed" ? (
+                          <CircleCheck className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                        )}
+                        <p className="text-sm font-medium text-slate-800">
+                          {processingDataset?.status === "completed"
+                            ? "分析完成，正在跳转到总览页..."
+                            : processingDataset?.status === "error"
+                            ? "分析失败，请检查字段映射或重试"
+                            : "分析进行中..."}
+                        </p>
+                      </div>
+
+                      <p className="text-xs text-slate-600 mt-1">
+                        当前步骤：{processingDataset?.processing_step || "初始化处理中"}
+                      </p>
+                      <div className="mt-2 h-2 w-full rounded-full bg-white/70 overflow-hidden">
+                        <div
+                          className={`h-full transition-all ${
+                            processingDataset?.status === "error" ? "bg-red-500" : "bg-blue-600"
+                          }`}
+                          style={{
+                            width: `${Math.max(
+                              5,
+                              Number(processingDataset?.processing_progress || 0)
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                      {processingDataset?.status === "completed" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-3 h-7 text-xs"
+                          onClick={() => navigate(createPageUrl("Overview"))}
+                        >
+                          立即查看结果
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
