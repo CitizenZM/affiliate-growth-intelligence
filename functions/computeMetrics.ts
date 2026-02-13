@@ -262,7 +262,7 @@ Deno.serve(async (req) => {
       row_count: 4,
     });
 
-    // Approval detail table - sort by decline rate descending
+    // Approval detail table - sort by declined revenue descending (top decliners first)
     const approvalDetail = publishers
       .filter(p => (p.total_revenue || 0) > 0)
       .map(p => ({
@@ -274,7 +274,7 @@ Deno.serve(async (req) => {
         approval_rate: (p.total_revenue || 0) > 0 ? (p.approved_revenue || 0) / (p.total_revenue || 0) : 0,
         decline_rate: (p.total_revenue || 0) > 0 ? (p.declined_revenue || 0) / (p.total_revenue || 0) : 0,
       }))
-      .sort((a, b) => b.decline_rate - a.decline_rate);
+      .sort((a, b) => b.declined_revenue - a.declined_revenue);
 
     await base44.asServiceRole.entities.EvidenceTable.create({
       dataset_id,
