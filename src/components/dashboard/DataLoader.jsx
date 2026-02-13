@@ -67,7 +67,14 @@ export default function DataLoader({
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <AlertCircle className="w-12 h-12 text-slate-300 mb-3" />
-        <p className="text-sm text-slate-500">{emptyMessage}</p>
+        <p className="text-sm text-slate-700">{emptyMessage}</p>
+        <p className="text-xs text-slate-500 mt-1">未选择数据集或当前环境没有可用数据</p>
+        <a
+          href="/Input"
+          className="mt-3 inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+        >
+          去 Input 上传数据
+        </a>
       </div>
     );
   }
