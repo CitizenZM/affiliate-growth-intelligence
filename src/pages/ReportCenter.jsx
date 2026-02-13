@@ -39,6 +39,7 @@ export default function ReportCenter() {
     queryKey: ['report-sections', datasetId],
     queryFn: () => datasetId ? base44.entities.ReportSection.filter({ dataset_id: datasetId }) : [],
     enabled: !!datasetId,
+    refetchInterval: 3000,
   });
 
   const handleGenerate = async () => {
@@ -145,6 +146,13 @@ export default function ReportCenter() {
 
   // Get current section
   const currentSection = sections.find(s => s.section_id === selectedChapter);
+  const chapterStatus = (chapterId, fallbackStatus) => {
+    if (!datasetId) return fallbackStatus;
+    const s = sections.find((row) => row.section_id === chapterId);
+    if (!s) return "missing";
+    if (s.ai_generated || (s.content_md && s.content_md.length > 0)) return "ready";
+    return fallbackStatus || "partial";
+  };
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
@@ -191,7 +199,7 @@ export default function ReportCenter() {
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">章节目录</p>
           <div className="space-y-0.5">
             {chapters.map((ch) => {
-              const sc = statusColors[ch.status];
+              const sc = statusColors[chapterStatus(ch.id, ch.status)];
               return (
                 <button
                   key={ch.id}
@@ -219,8 +227,8 @@ export default function ReportCenter() {
           >
             <div className="flex items-start justify-between mb-4">
               <div>
-                <Badge className={`${statusColors[chapters[selectedChapter].status].bg} ${statusColors[chapters[selectedChapter].status].text} text-[10px] mb-2`}>
-                  {statusColors[chapters[selectedChapter].status].label}
+                <Badge className={`${statusColors[chapterStatus(selectedChapter, chapters[selectedChapter].status)].bg} ${statusColors[chapterStatus(selectedChapter, chapters[selectedChapter].status)].text} text-[10px] mb-2`}>
+                  {statusColors[chapterStatus(selectedChapter, chapters[selectedChapter].status)].label}
                 </Badge>
                 <h2 className="text-xl font-bold text-slate-900">Chapter {selectedChapter}: {chapters[selectedChapter].title}</h2>
                 <p className="text-sm text-slate-500 mt-1">{chapters[selectedChapter].description}</p>

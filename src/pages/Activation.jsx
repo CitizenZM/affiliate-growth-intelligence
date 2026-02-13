@@ -5,25 +5,12 @@ import DatasetSelector from "../components/dashboard/DatasetSelector";
 import DataLoader from "../components/dashboard/DataLoader";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
-const funnelData = [
-  { name: "Total", value: 1245, color: "#94A3B8" },
-  { name: "Active", value: 398, color: "#3B82F6" },
-  { name: "Core Drivers", value: 45, color: "#2563EB" },
-];
-
 const evidenceColumns = [
   { key: "name", label: "Publisher" },
   { key: "type", label: "类型" },
   { key: "gmv", label: "GMV" },
   { key: "cpa", label: "CPA" },
   { key: "status", label: "状态" },
-];
-const evidenceData = [
-  { name: "RetailMeNot", type: "Deal/Coupon", gmv: "$85,000", cpa: "$12.30", status: "Active" },
-  { name: "Wirecutter", type: "Content", gmv: "$62,000", cpa: "$18.50", status: "Active" },
-  { name: "Rakuten", type: "Loyalty", gmv: "$54,000", cpa: "$8.90", status: "Active" },
-  { name: "BuzzFeed", type: "Content", gmv: "$31,000", cpa: "$22.10", status: "Active" },
-  { name: "Honey", type: "Tech/Sub", gmv: "$28,500", cpa: "$6.40", status: "Active" },
 ];
 
 const derivationNotes = [
@@ -64,6 +51,11 @@ export default function Activation() {
           const total = getMetric('total_publishers');
           const active = getMetric('active_publishers');
           const activeRatio = getMetric('active_ratio');
+          const evidenceRows = getTable('activation_publishers').map((row) => ({
+            ...row,
+            gmv: `$${Number(row.gmv || 0).toLocaleString()}`,
+            cpa: `$${Number(row.cpa || 0).toFixed(2)}`,
+          }));
           
           const funnelData = [
             { name: "Total", value: total, color: "#94A3B8" },
@@ -114,7 +106,7 @@ export default function Activation() {
               <EvidenceTable
                 title="Active Publisher 明细"
                 columns={evidenceColumns}
-                data={evidenceData}
+                data={evidenceRows}
                 derivationNotes={section?.derivation_notes || derivationNotes}
               />
             </SectionLayout>

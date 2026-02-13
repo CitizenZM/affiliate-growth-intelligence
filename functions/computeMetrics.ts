@@ -99,6 +99,30 @@ Deno.serve(async (req) => {
       row_count: 4,
     });
 
+    const activationDetail = active_publishers
+      .map((p) => {
+        const orders = p.orders || 0;
+        const commission = p.total_commission || 0;
+        const cpa = orders > 0 ? commission / orders : 0;
+        return {
+          name: p.publisher_name || p.publisher_id || 'Unknown',
+          type: p.publisher_type || 'other',
+          gmv: p.total_revenue || 0,
+          cpa: cpa,
+          status: 'Active',
+        };
+      })
+      .sort((a, b) => b.gmv - a.gmv)
+      .slice(0, 100);
+
+    await base44.asServiceRole.entities.EvidenceTable.create({
+      dataset_id,
+      table_key: 'activation_publishers',
+      data_json: activationDetail,
+      module_id: 1,
+      row_count: activationDetail.length,
+    });
+
     // ============ MODULE 2: Concentration ============
     const sorted = [...active_publishers].sort((a, b) => (b.total_revenue || 0) - (a.total_revenue || 0));
     
