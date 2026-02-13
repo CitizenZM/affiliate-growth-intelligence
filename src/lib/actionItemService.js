@@ -1,4 +1,3 @@
-import { base44 } from "@/api/base44Client";
 import { isSupabaseEnabled, supabase } from "@/lib/supabaseClient";
 
 const normalizeItem = (row) => ({
@@ -14,10 +13,7 @@ const normalizeItem = (row) => ({
 });
 
 export async function listActionItems() {
-  if (!isSupabaseEnabled || !supabase) {
-    const rows = await base44.entities.ActionItem.list("-created_date", 100);
-    return rows.map(normalizeItem);
-  }
+  if (!isSupabaseEnabled || !supabase) throw new Error("Supabase is not configured.");
 
   const { data, error } = await supabase
     .from("action_items")
@@ -30,9 +26,7 @@ export async function listActionItems() {
 }
 
 export async function createActionItem(payload) {
-  if (!isSupabaseEnabled || !supabase) {
-    return base44.entities.ActionItem.create(payload);
-  }
+  if (!isSupabaseEnabled || !supabase) throw new Error("Supabase is not configured.");
 
   const insertPayload = {
     title: payload.title,
@@ -55,9 +49,7 @@ export async function createActionItem(payload) {
 }
 
 export async function updateActionItem(id, patch) {
-  if (!isSupabaseEnabled || !supabase) {
-    return base44.entities.ActionItem.update(id, patch);
-  }
+  if (!isSupabaseEnabled || !supabase) throw new Error("Supabase is not configured.");
 
   const { data, error } = await supabase
     .from("action_items")
@@ -69,4 +61,3 @@ export async function updateActionItem(id, patch) {
   if (error) throw error;
   return normalizeItem(data);
 }
-

@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Database, ArrowRight, CheckCircle2, AlertCircle, Settings, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { dataClient } from "@/lib/dataClient";
 import DatasetSelector from "@/components/dashboard/DatasetSelector";
 import { listDatasetsForSelector } from "@/lib/supabasePipelineService";
 
@@ -53,7 +53,7 @@ export default function DataCenter() {
     queryKey: ["jobs", activeDataset?.id],
     queryFn: () =>
       activeDataset?.id
-        ? base44.entities.Job.filter({ dataset_id: activeDataset.id })
+        ? dataClient.entities.Job.filter({ dataset_id: activeDataset.id })
         : [],
     enabled: !!activeDataset?.id,
     refetchInterval: 3000,

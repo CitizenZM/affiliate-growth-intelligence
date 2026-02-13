@@ -8,7 +8,7 @@ import {
   Download, Globe, Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { base44 } from "@/api/base44Client";
+import { dataClient } from "@/lib/dataClient";
 import { useQuery } from "@tanstack/react-query";
 import ProgressIndicator from "@/components/layout/ProgressIndicator";
 import ProcessingStatus from "@/components/layout/ProcessingStatus";
@@ -37,7 +37,7 @@ export default function Layout({ children, currentPageName }) {
   // Fetch latest dataset
   const { data: datasets } = useQuery({
     queryKey: ['datasets'],
-    queryFn: () => base44.entities.DataUpload.list('-created_date', 1),
+    queryFn: () => dataClient.entities.DataUpload.list('-created_date', 1),
     refetchInterval: 3000, // Refresh every 3s
   });
 
@@ -52,7 +52,7 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     if (!latestDataset?.id) return;
     
-    const unsubscribe = base44.entities.DataUpload.subscribe((event) => {
+    const unsubscribe = dataClient.entities.DataUpload.subscribe((event) => {
       if (event.id === latestDataset.id && event.type === 'update') {
         setLatestDataset(event.data);
         syncDatasetRun(event.data).catch(() => {});

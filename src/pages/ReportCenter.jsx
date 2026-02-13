@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download, Eye, Sparkles, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { base44 } from "@/api/base44Client";
+import { dataClient } from "@/lib/dataClient";
 import DatasetSelector from "../components/dashboard/DatasetSelector";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -37,7 +37,7 @@ export default function ReportCenter() {
   // Fetch report sections
   const { data: sections = [], isLoading } = useQuery({
     queryKey: ['report-sections', datasetId],
-    queryFn: () => datasetId ? base44.entities.ReportSection.filter({ dataset_id: datasetId }) : [],
+    queryFn: () => datasetId ? dataClient.entities.ReportSection.filter({ dataset_id: datasetId }) : [],
     enabled: !!datasetId,
     refetchInterval: 3000,
   });
@@ -50,7 +50,7 @@ export default function ReportCenter() {
     
     setGenerating(true);
     try {
-      await base44.functions.invoke('aiGenerateSections', { dataset_id: datasetId });
+      await dataClient.functions.invoke('aiGenerateSections', { dataset_id: datasetId });
       toast.success('报告生成完成');
     } catch (error) {
       toast.error('生成失败: ' + error.message);
@@ -67,34 +67,6 @@ export default function ReportCenter() {
 
     setDownloading(format);
     try {
-      const response = await fetch(`${window.location.origin}/api/functions/generateReport`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('base44_token')}`,
-        },
-        body: JSON.stringify({
-          dataset_id: datasetId,
-          format: format.toLowerCase(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate report');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Affiliate-Report.${format === 'PDF' ? 'pdf' : 'md'}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
-      
-      toast.success('下载成功');
-    } catch (error) {
       const markdown = [
         `# Affiliate Growth Intelligence Report`,
         `Generated at: ${new Date().toISOString()}`,
@@ -106,15 +78,18 @@ export default function ReportCenter() {
       ].join("\n");
       const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
-      a.download = "Affiliate-Report.md";
+      a.download = `Affiliate-Report.${format === 'PDF' ? 'md' : 'md'}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
-      console.warn("Report endpoint unavailable, used local markdown fallback:", error);
-      toast.success('接口不可用，已导出本地 Markdown 报告');
+      
+      toast.success('下载成功');
+    } catch (error) {
+      console.error("Report export failed:", error);
+      toast.error('导出失败: ' + error.message);
     } finally {
       setDownloading(null);
     }
@@ -128,33 +103,6 @@ export default function ReportCenter() {
 
     setDownloading('board');
     try {
-      const response = await fetch(`${window.location.origin}/api/functions/generateBoardSummary`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('base44_token')}`,
-        },
-        body: JSON.stringify({
-          dataset_id: datasetId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate board summary');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Board-Summary.pdf';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
-      
-      toast.success('Board 摘要已下载');
-    } catch (error) {
       const topConclusion = sections.find((s) => s.section_id === 0)?.conclusion || "暂无结论";
       const blob = new Blob(
         [`Board Summary\n\n${topConclusion}\n`],
@@ -168,8 +116,10 @@ export default function ReportCenter() {
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
-      console.warn("Board endpoint unavailable, used local fallback:", error);
-      toast.success('接口不可用，已导出本地摘要');
+      toast.success('Board 摘要已下载');
+    } catch (error) {
+      console.error("Board export failed:", error);
+      toast.error('导出失败: ' + error.message);
     } finally {
       setDownloading(null);
     }

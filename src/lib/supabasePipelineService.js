@@ -1,8 +1,8 @@
-import { base44 } from "@/api/base44Client";
 import { isSupabaseEnabled, supabase } from "@/lib/supabaseClient";
 
 const safeUpsert = async (table, rows, onConflict) => {
-  if (!isSupabaseEnabled || !supabase || !rows || rows.length === 0) return;
+  if (!isSupabaseEnabled || !supabase) throw new Error("Supabase is not configured.");
+  if (!rows || rows.length === 0) return;
   const { error } = await supabase.from(table).upsert(rows, { onConflict });
   if (error) {
     console.warn(`[supabase] upsert failed for ${table}:`, error.message);
@@ -22,6 +22,8 @@ export async function syncDatasetRun(dataset) {
         processing_progress: dataset.processing_progress ?? 0,
         processing_step: dataset.processing_step || null,
         sections_ready: dataset.sections_ready || [],
+        field_mapping: dataset.field_mapping || {},
+        row_count: dataset.row_count || 0,
         updated_at: new Date().toISOString(),
       },
     ],
@@ -69,9 +71,7 @@ export async function syncAnalysisSnapshot(datasetId, metrics = [], evidenceTabl
 
 export async function listAnalysisMetrics(datasetId) {
   if (!datasetId) return [];
-  if (!isSupabaseEnabled || !supabase) {
-    return base44.entities.MetricSnapshot.filter({ dataset_id: datasetId });
-  }
+  if (!isSupabaseEnabled || !supabase) throw new Error("Supabase is not configured.");
 
   const { data, error } = await supabase
     .from("analysis_metrics")
@@ -80,8 +80,7 @@ export async function listAnalysisMetrics(datasetId) {
     .order("updated_at", { ascending: false });
 
   if (error) {
-    console.warn("[supabase] analysis_metrics select failed, fallback to Base44:", error.message);
-    return base44.entities.MetricSnapshot.filter({ dataset_id: datasetId });
+    throw error;
   }
 
   return (data || []).map((row) => ({
@@ -97,9 +96,7 @@ export async function listAnalysisMetrics(datasetId) {
 
 export async function listAnalysisEvidenceTables(datasetId) {
   if (!datasetId) return [];
-  if (!isSupabaseEnabled || !supabase) {
-    return base44.entities.EvidenceTable.filter({ dataset_id: datasetId });
-  }
+  if (!isSupabaseEnabled || !supabase) throw new Error("Supabase is not configured.");
 
   const { data, error } = await supabase
     .from("analysis_evidence_tables")
@@ -108,8 +105,7 @@ export async function listAnalysisEvidenceTables(datasetId) {
     .order("updated_at", { ascending: false });
 
   if (error) {
-    console.warn("[supabase] analysis_evidence_tables select failed, fallback to Base44:", error.message);
-    return base44.entities.EvidenceTable.filter({ dataset_id: datasetId });
+    throw error;
   }
 
   return (data || []).map((row) => ({
@@ -125,9 +121,7 @@ export async function listAnalysisEvidenceTables(datasetId) {
 
 export async function listAnalysisSections(datasetId) {
   if (!datasetId) return [];
-  if (!isSupabaseEnabled || !supabase) {
-    return base44.entities.ReportSection.filter({ dataset_id: datasetId });
-  }
+  if (!isSupabaseEnabled || !supabase) throw new Error("Supabase is not configured.");
 
   const { data, error } = await supabase
     .from("analysis_sections")
@@ -136,8 +130,7 @@ export async function listAnalysisSections(datasetId) {
     .order("updated_at", { ascending: false });
 
   if (error) {
-    console.warn("[supabase] analysis_sections select failed, fallback to Base44:", error.message);
-    return base44.entities.ReportSection.filter({ dataset_id: datasetId });
+    throw error;
   }
 
   return (data || []).map((row) => ({
@@ -156,9 +149,7 @@ export async function listAnalysisSections(datasetId) {
 }
 
 export async function listDatasetsForSelector() {
-  if (!isSupabaseEnabled || !supabase) {
-    return base44.entities.DataUpload.list("-created_date", 50);
-  }
+  if (!isSupabaseEnabled || !supabase) throw new Error("Supabase is not configured.");
 
   const { data, error } = await supabase
     .from("dataset_runs")
@@ -167,8 +158,7 @@ export async function listDatasetsForSelector() {
     .limit(50);
 
   if (error) {
-    console.warn("[supabase] dataset_runs select failed, fallback to Base44:", error.message);
-    return base44.entities.DataUpload.list("-created_date", 50);
+    throw error;
   }
 
   return (data || []).map((row) => ({
@@ -179,6 +169,8 @@ export async function listDatasetsForSelector() {
     processing_progress: row.processing_progress,
     processing_step: row.processing_step,
     sections_ready: row.sections_ready || [],
+    field_mapping: row.field_mapping || {},
+    row_count: row.row_count || 0,
     updated_date: row.updated_at,
   }));
 }

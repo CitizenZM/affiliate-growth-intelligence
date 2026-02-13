@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { dataClient } from "@/lib/dataClient";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,6 @@ import FieldMapper from "../components/input/FieldMapper";
 import DataCleaning from "../components/input/DataCleaning";
 import HistoryPanel from "../components/input/HistoryPanel";
 import { syncDatasetRun } from "@/lib/supabasePipelineService";
-import { isBase44Configured } from "@/lib/app-params";
 
 const STEPS = ["上传文件", "预览&映射", "数据清洗", "补充信息"];
 
@@ -158,18 +157,12 @@ export default function InputPage() {
       }
       setFieldMapping(autoMapping);
       
-      if (isBase44Configured) {
-        // Upload file to Base44 only when backend is configured.
-        try {
-          const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
-          setUploadResult({ file_url, file_name: f.name, local_only: false });
-        } catch (uploadError) {
-          // Fallback: continue with locally parsed rows even if remote upload is unavailable.
-          console.warn("UploadFile failed, fallback to local parsed data:", uploadError);
-          setUploadResult({ file_url: null, file_name: f.name, local_only: true });
-        }
-      } else {
-        // No Base44 backend in this deployment: always use local parsed rows.
+      try {
+        const { file_url } = await dataClient.integrations.Core.UploadFile({ file: f });
+        setUploadResult({ file_url, file_name: f.name, local_only: false });
+      } catch (uploadError) {
+        // Continue with local parsed rows even if remote file storage is unavailable.
+        console.warn("UploadFile failed, fallback to local parsed data:", uploadError);
         setUploadResult({ file_url: null, file_name: f.name, local_only: true });
       }
       
@@ -220,7 +213,7 @@ export default function InputPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const dataset = await base44.entities.DataUpload.create({
+      const dataset = await dataClient.entities.DataUpload.create({
         file_url: uploadResult?.file_url || undefined,
         file_name: uploadResult?.file_name,
         website_url: formData.websiteUrl || undefined,
@@ -236,8 +229,8 @@ export default function InputPage() {
       syncDatasetRun(dataset).catch(() => {});
 
       // Scrape website if enabled (don't wait)
-      if (isBase44Configured && formData.webEnabled && formData.websiteUrl) {
-        base44.functions.invoke('scrapeWebsite', {
+      if (formData.webEnabled && formData.websiteUrl) {
+        dataClient.functions.invoke('scrapeWebsite', {
           website_url: formData.websiteUrl,
           dataset_id: dataset.id,
         }).catch(error => {
@@ -246,7 +239,7 @@ export default function InputPage() {
       }
 
       // Trigger processing (don't wait, let it run in background)
-      base44.functions.invoke('processDataset', {
+      dataClient.functions.invoke('processDataset', {
         dataset_id: dataset.id,
         file_url: uploadResult?.file_url,
         parsed_rows: parsedData || undefined,

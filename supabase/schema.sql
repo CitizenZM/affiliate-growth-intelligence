@@ -63,8 +63,13 @@ create table if not exists public.dataset_runs (
   processing_progress numeric not null default 0,
   processing_step text,
   sections_ready jsonb not null default '[]'::jsonb,
+  field_mapping jsonb not null default '{}'::jsonb,
+  row_count integer not null default 0,
   updated_at timestamptz not null default now()
 );
+
+alter table public.dataset_runs add column if not exists field_mapping jsonb not null default '{}'::jsonb;
+alter table public.dataset_runs add column if not exists row_count integer not null default 0;
 
 create table if not exists public.analysis_metrics (
   dataset_id text not null,

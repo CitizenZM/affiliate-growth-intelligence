@@ -1,5 +1,5 @@
 import React from "react";
-import { base44 } from "@/api/base44Client";
+import { dataClient } from "@/lib/dataClient";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,7 @@ const statusConfig = {
 export default function HistoryPanel({ onReuse }) {
   const { data: history = [], isLoading } = useQuery({
     queryKey: ['upload-history'],
-    queryFn: () => base44.entities.DataUpload.list('-created_date', 20),
+    queryFn: () => dataClient.entities.DataUpload.list('-created_date', 20),
   });
 
   if (isLoading) {
