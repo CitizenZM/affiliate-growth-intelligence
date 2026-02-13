@@ -24,7 +24,7 @@ export default function Dashboard() {
       const dataPromise = base44.entities.DataUpload.list('-created_date', 50);
       return Promise.race([dataPromise, timeoutPromise]);
     },
-    refetchInterval: 3000,
+    refetchInterval: 10000,
     retry: 1,
   });
 
@@ -39,7 +39,7 @@ export default function Dashboard() {
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!selectedDatasetId,
-    refetchInterval: 3000,
+    refetchInterval: 10000,
     retry: 1,
   });
 
@@ -54,7 +54,7 @@ export default function Dashboard() {
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!selectedDatasetId,
-    refetchInterval: 3000,
+    refetchInterval: 10000,
     retry: 1,
   });
 

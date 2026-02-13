@@ -38,7 +38,7 @@ export default function DatasetSelector({ value, onChange }) {
       const dataPromise = base44.entities.DataUpload.list('-created_date', 50);
       return Promise.race([dataPromise, timeoutPromise]);
     },
-    refetchInterval: 3000,
+    refetchInterval: 10000,
     retry: 1,
   });
 
