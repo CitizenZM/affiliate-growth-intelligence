@@ -5,11 +5,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "lucide-react";
 
-const statusColors = {
-  completed: { bg: "bg-emerald-50", text: "text-emerald-700", label: "已完成" },
-  processing: { bg: "bg-blue-50", text: "text-blue-700", label: "处理中" },
-  error: { bg: "bg-red-50", text: "text-red-700", label: "失败" },
-  pending: { bg: "bg-amber-50", text: "text-amber-700", label: "待处理" },
+const getStatusDisplay = (dataset) => {
+  if (!dataset) return { bg: "bg-slate-50", text: "text-slate-700", label: "未知" };
+  
+  if (dataset.status === 'completed') {
+    return { bg: "bg-emerald-50", text: "text-emerald-700", label: "已完成" };
+  }
+  if (dataset.status === 'error') {
+    return { bg: "bg-red-50", text: "text-red-700", label: "失败" };
+  }
+  if (dataset.status === 'pending') {
+    return { bg: "bg-amber-50", text: "text-amber-700", label: "待处理" };
+  }
+  if (dataset.status === 'processing') {
+    const progress = dataset.processing_progress || 0;
+    return { 
+      bg: "bg-blue-50", 
+      text: "text-blue-700", 
+      label: `${Math.round(progress)}%`
+    };
+  }
+  return { bg: "bg-slate-50", text: "text-slate-700", label: "未知" };
 };
 
 export default function DatasetSelector({ value, onChange }) {
@@ -47,14 +63,14 @@ export default function DatasetSelector({ value, onChange }) {
       </SelectTrigger>
       <SelectContent>
         {datasets.map(d => {
-          const status = statusColors[d.status] || statusColors.pending;
+          const status = getStatusDisplay(d);
           return (
             <SelectItem key={d.id} value={d.id}>
               <div className="flex items-center gap-2 w-full">
-                <span className="font-medium truncate">
+                <span className="font-medium truncate text-xs">
                   {d.version_label || d.file_name}
                 </span>
-                <Badge className={`${status.bg} ${status.text} text-[9px] ml-auto`}>
+                <Badge className={`${status.bg} ${status.text} text-[9px] ml-auto whitespace-nowrap`}>
                   {status.label}
                 </Badge>
               </div>
