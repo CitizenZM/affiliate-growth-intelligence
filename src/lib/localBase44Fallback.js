@@ -7,6 +7,7 @@ const state = {
     EvidenceTable: new Set(),
     ReportSection: new Set(),
     ActionItem: new Set(),
+    Job: new Set(),
   },
 };
 
@@ -31,6 +32,7 @@ function loadStore() {
         EvidenceTable: [],
         ReportSection: [],
         ActionItem: [],
+        Job: [],
       };
 }
 
@@ -171,6 +173,7 @@ function clearByDataset(store, datasetId) {
   store.MetricSnapshot = (store.MetricSnapshot || []).filter((r) => r.dataset_id !== datasetId);
   store.EvidenceTable = (store.EvidenceTable || []).filter((r) => r.dataset_id !== datasetId);
   store.ReportSection = (store.ReportSection || []).filter((r) => r.dataset_id !== datasetId);
+  store.Job = (store.Job || []).filter((r) => r.dataset_id !== datasetId);
 }
 
 function pushMetric(store, datasetId, key, value, moduleId = 0) {
@@ -293,6 +296,39 @@ async function processDatasetLocal(payload) {
   saveStore(store);
   notify("DataUpload", "update", dataUploads[idx]);
 
+  const startJob = (jobType) => {
+    const row = {
+      id: id("job"),
+      dataset_id: datasetId,
+      job_type: jobType,
+      status: "running",
+      progress: 0,
+      started_at: nowIso(),
+      completed_at: null,
+      created_date: nowIso(),
+      updated_date: nowIso(),
+    };
+    store.Job.push(row);
+    notify("Job", "create", row);
+    return row.id;
+  };
+
+  const finishJob = (jobId, status = "completed", progress = 100) => {
+    const jobIdx = store.Job.findIndex((j) => j.id === jobId);
+    if (jobIdx < 0) return;
+    const row = {
+      ...store.Job[jobIdx],
+      status,
+      progress,
+      completed_at: nowIso(),
+      updated_date: nowIso(),
+    };
+    store.Job[jobIdx] = row;
+    notify("Job", "update", row);
+  };
+
+  const parseJobId = startJob("parse_csv");
+
   const sourceByTarget = Object.entries(fieldMapping || {}).reduce((acc, [source, target]) => {
     if (source && target) acc[target] = source;
     return acc;
@@ -330,6 +366,9 @@ async function processDatasetLocal(payload) {
     seen.add(key);
     deduped.push(clean);
   }
+  finishJob(parseJobId);
+
+  const computeJobId = startJob("compute_metrics");
 
   const totalPublishers = deduped.length;
   const activePublishers = deduped.filter((p) => p.total_revenue > 0);
@@ -522,12 +561,15 @@ async function processDatasetLocal(payload) {
       priority: "medium",
     },
   ], 8);
+  finishJob(computeJobId);
 
+  const aiJobId = startJob("ai_generate");
   const currentMetrics = store.MetricSnapshot.filter((m) => m.dataset_id === datasetId);
   const currentTables = store.EvidenceTable.filter((t) => t.dataset_id === datasetId);
   for (let sid = 0; sid <= 10; sid += 1) {
     pushSection(store, datasetId, sid, currentMetrics, currentTables);
   }
+  finishJob(aiJobId);
 
   dataUploads[idx] = {
     ...dataUploads[idx],
@@ -564,6 +606,7 @@ export function createLocalBase44Client() {
       EvidenceTable: buildEntityApi("EvidenceTable"),
       ReportSection: buildEntityApi("ReportSection"),
       ActionItem: buildEntityApi("ActionItem"),
+      Job: buildEntityApi("Job"),
     },
     integrations: {
       Core: {
