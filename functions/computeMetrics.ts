@@ -20,6 +20,11 @@ Deno.serve(async (req) => {
     });
 
     // Get all publishers for this dataset
+    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+      processing_progress: 32,
+      processing_step: '加载数据...',
+    });
+    
     const publishers = await base44.asServiceRole.entities.Publisher.filter({ dataset_id });
 
     if (publishers.length === 0) {
@@ -29,6 +34,10 @@ Deno.serve(async (req) => {
     const calc_version = new Date().toISOString();
 
     // ============ MODULE 0 & 1: Activation Metrics ============
+    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+      processing_progress: 35,
+      processing_step: '计算激活指标...',
+    });
     const total_publishers = publishers.length;
     const active_publishers = publishers.filter(p => (p.total_revenue || 0) > 0);
     const active_count = active_publishers.length;
@@ -92,6 +101,11 @@ Deno.serve(async (req) => {
     });
 
     // ============ MODULE 2: Concentration ============
+    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+      processing_progress: 40,
+      processing_step: '计算集中度...',
+    });
+    
     const sorted = [...active_publishers].sort((a, b) => (b.total_revenue || 0) - (a.total_revenue || 0));
     
     const top1_gmv = sorted[0]?.total_revenue || 0;
@@ -174,6 +188,11 @@ Deno.serve(async (req) => {
     });
 
     // ============ MODULE 3: Mix Health ============
+    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+      processing_progress: 44,
+      processing_step: '计算类型分布...',
+    });
+    
     const typeBuckets = {};
     active_publishers.forEach(p => {
       const bucket = p.publisher_type || 'other';
@@ -212,6 +231,11 @@ Deno.serve(async (req) => {
     }
 
     // ============ MODULE 5: Approval ============
+    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+      processing_progress: 48,
+      processing_step: '计算审批指标...',
+    });
+    
     const total_approved = publishers.reduce((sum, p) => sum + (p.approved_revenue || 0), 0);
     const total_pending = publishers.reduce((sum, p) => sum + (p.pending_revenue || 0), 0);
     const total_declined = publishers.reduce((sum, p) => sum + (p.declined_revenue || 0), 0);
