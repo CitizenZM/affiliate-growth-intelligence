@@ -1,8 +1,12 @@
 import React, { useEffect } from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, AlertCircle } from "lucide-react";
-import { syncAnalysisSnapshot } from "@/lib/supabasePipelineService";
+import {
+  listAnalysisEvidenceTables,
+  listAnalysisMetrics,
+  listAnalysisSections,
+  syncAnalysisSnapshot,
+} from "@/lib/supabasePipelineService";
 
 export default function DataLoader({ 
   datasetId, 
@@ -16,7 +20,7 @@ export default function DataLoader({
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('数据加载超时（>10秒），请检查数据处理状态或刷新页面')), 10000)
       );
-      const dataPromise = base44.entities.MetricSnapshot.filter({ dataset_id: datasetId });
+      const dataPromise = listAnalysisMetrics(datasetId);
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!datasetId,
@@ -30,7 +34,7 @@ export default function DataLoader({
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('数据加载超时（>10秒），请检查数据处理状态或刷新页面')), 10000)
       );
-      const dataPromise = base44.entities.EvidenceTable.filter({ dataset_id: datasetId });
+      const dataPromise = listAnalysisEvidenceTables(datasetId);
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!datasetId,
@@ -44,7 +48,7 @@ export default function DataLoader({
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('数据加载超时（>10秒），请检查数据处理状态或刷新页面')), 10000)
       );
-      const dataPromise = base44.entities.ReportSection.filter({ dataset_id: datasetId });
+      const dataPromise = listAnalysisSections(datasetId);
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!datasetId,

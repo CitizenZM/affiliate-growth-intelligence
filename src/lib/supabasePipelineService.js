@@ -67,6 +67,94 @@ export async function syncAnalysisSnapshot(datasetId, metrics = [], evidenceTabl
   await safeUpsert("analysis_sections", sectionRows, "dataset_id,section_id");
 }
 
+export async function listAnalysisMetrics(datasetId) {
+  if (!datasetId) return [];
+  if (!isSupabaseEnabled || !supabase) {
+    return base44.entities.MetricSnapshot.filter({ dataset_id: datasetId });
+  }
+
+  const { data, error } = await supabase
+    .from("analysis_metrics")
+    .select("*")
+    .eq("dataset_id", datasetId)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.warn("[supabase] analysis_metrics select failed, fallback to Base44:", error.message);
+    return base44.entities.MetricSnapshot.filter({ dataset_id: datasetId });
+  }
+
+  return (data || []).map((row) => ({
+    dataset_id: row.dataset_id,
+    metric_key: row.metric_key,
+    value_num: row.value_num,
+    module_id: row.module_id,
+    calc_version: row.calc_version,
+    updated_date: row.updated_at,
+    created_date: row.updated_at,
+  }));
+}
+
+export async function listAnalysisEvidenceTables(datasetId) {
+  if (!datasetId) return [];
+  if (!isSupabaseEnabled || !supabase) {
+    return base44.entities.EvidenceTable.filter({ dataset_id: datasetId });
+  }
+
+  const { data, error } = await supabase
+    .from("analysis_evidence_tables")
+    .select("*")
+    .eq("dataset_id", datasetId)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.warn("[supabase] analysis_evidence_tables select failed, fallback to Base44:", error.message);
+    return base44.entities.EvidenceTable.filter({ dataset_id: datasetId });
+  }
+
+  return (data || []).map((row) => ({
+    dataset_id: row.dataset_id,
+    table_key: row.table_key,
+    data_json: row.data_json || [],
+    module_id: row.module_id,
+    row_count: row.row_count,
+    updated_date: row.updated_at,
+    created_date: row.updated_at,
+  }));
+}
+
+export async function listAnalysisSections(datasetId) {
+  if (!datasetId) return [];
+  if (!isSupabaseEnabled || !supabase) {
+    return base44.entities.ReportSection.filter({ dataset_id: datasetId });
+  }
+
+  const { data, error } = await supabase
+    .from("analysis_sections")
+    .select("*")
+    .eq("dataset_id", datasetId)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.warn("[supabase] analysis_sections select failed, fallback to Base44:", error.message);
+    return base44.entities.ReportSection.filter({ dataset_id: datasetId });
+  }
+
+  return (data || []).map((row) => ({
+    dataset_id: row.dataset_id,
+    section_id: row.section_id,
+    title: row.title,
+    conclusion: row.conclusion,
+    conclusion_status: row.conclusion_status,
+    content_md: row.content_md,
+    key_findings: row.key_findings || [],
+    derivation_notes: row.derivation_notes || [],
+    ai_generated: Boolean(row.ai_generated),
+    updated_date: row.updated_at,
+    created_date: row.updated_at,
+  }));
+}
+
 export async function listDatasetsForSelector() {
   if (!isSupabaseEnabled || !supabase) {
     return base44.entities.DataUpload.list("-created_date", 50);
@@ -94,4 +182,3 @@ export async function listDatasetsForSelector() {
     updated_date: row.updated_at,
   }));
 }
-
