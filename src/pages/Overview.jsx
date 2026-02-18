@@ -6,25 +6,28 @@ import RiskOpportunityCard from "../components/dashboard/RiskOpportunityCard";
 import DatasetSelector from "../components/dashboard/DatasetSelector";
 import DataLoader from "../components/dashboard/DataLoader";
 import { Button } from "@/components/ui/button";
-import { FileText, Sparkles, ArrowRight } from "lucide-react";
+import { FileText, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { useLanguage } from "@/components/LanguageContext";
 
 export default function Overview() {
   const [selectedDataset, setSelectedDataset] = useState(null);
+  const { t } = useLanguage();
+  const ov = t('overview');
   return (
     <div className="space-y-8 max-w-[1400px] mx-auto">
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Affiliate Growth Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">一屏掌握渠道健康度与核心风险机会</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{ov.title}</h1>
+          <p className="text-sm text-slate-500 mt-1">{ov.subtitle}</p>
         </div>
         <div className="flex gap-2">
           <DatasetSelector value={selectedDataset} onChange={setSelectedDataset} />
           <Link to={createPageUrl("ReportCenter")}>
             <Button variant="outline" size="sm" className="gap-1.5 text-xs">
               <FileText className="w-3.5 h-3.5" />
-              生成完整报告
+              {ov.generateReport}
             </Button>
           </Link>
         </div>
@@ -53,29 +56,29 @@ export default function Overview() {
               target: "40%",
               status: activeRatio >= 0.4 ? "green" : activeRatio >= 0.3 ? "yellow" : "red",
               evidenceRows: [
-                { label: "总 Publisher", value: totalPubs.toString() },
-                { label: "活跃 Publisher", value: activePubs.toString() },
-                { label: "活跃定义", value: "total_revenue > 0" },
+                { label: ov.labels.totalPubs, value: totalPubs.toString() },
+                { label: ov.labels.activePubs, value: activePubs.toString() },
+                { label: ov.labels.activeDef, value: "" },
               ],
             },
             {
-              title: "Content GMV 占比",
+              title: `Content GMV ${t('concentration.cols.pct') === 'pct' ? 'Share' : t('concentration.cols.pct')}`,
               value: `${(contentShare * 100).toFixed(0)}%`,
               target: "30%",
               status: contentShare >= 0.3 ? "green" : contentShare >= 0.2 ? "yellow" : "red",
               evidenceRows: [
-                { label: "Content GMV", value: `$${((contentShare * totalGMV) / 1000).toFixed(0)}K` },
-                { label: "Total GMV", value: `$${(totalGMV / 1000).toFixed(0)}K` },
+                { label: ov.labels.contentGmv, value: `$${((contentShare * totalGMV) / 1000).toFixed(0)}K` },
+                { label: ov.labels.totalGmv, value: `$${(totalGMV / 1000).toFixed(0)}K` },
               ],
             },
             {
-              title: "Deal GMV 占比",
+              title: `Deal GMV ${t('concentration.cols.pct') === 'pct' ? 'Share' : t('concentration.cols.pct')}`,
               value: `${(dealShare * 100).toFixed(0)}%`,
               target: "≤35%",
               status: dealShare <= 0.35 ? "green" : dealShare <= 0.45 ? "yellow" : "red",
               evidenceRows: [
-                { label: "Deal/Coupon GMV", value: `$${((dealShare * totalGMV) / 1000).toFixed(0)}K` },
-                { label: "Total GMV", value: `$${(totalGMV / 1000).toFixed(0)}K` },
+                { label: ov.labels.dealGmv, value: `$${((dealShare * totalGMV) / 1000).toFixed(0)}K` },
+                { label: ov.labels.totalGmv, value: `$${(totalGMV / 1000).toFixed(0)}K` },
               ],
             },
             {
@@ -84,18 +87,18 @@ export default function Overview() {
               target: "$4,000",
               status: gmvPerActive >= 4000 ? "green" : gmvPerActive >= 3000 ? "yellow" : "red",
               evidenceRows: [
-                { label: "Total GMV", value: `$${(totalGMV / 1000).toFixed(0)}K` },
-                { label: "Active Publishers", value: activePubs.toString() },
+                { label: ov.labels.totalGmv, value: `$${(totalGMV / 1000).toFixed(0)}K` },
+                { label: ov.labels.activePubs, value: activePubs.toString() },
               ],
             },
             {
-              title: "Top10 GMV 占比",
+              title: "Top10 GMV Share",
               value: `${(top10Share * 100).toFixed(0)}%`,
               target: "≤50%",
               status: top10Share <= 0.5 ? "green" : top10Share <= 0.6 ? "yellow" : "red",
               evidenceRows: [
                 { label: "Top10 GMV", value: `$${((top10Share * totalGMV) / 1000).toFixed(0)}K` },
-                { label: "Total GMV", value: `$${(totalGMV / 1000).toFixed(0)}K` },
+                { label: ov.labels.totalGmv, value: `$${(totalGMV / 1000).toFixed(0)}K` },
               ],
             },
             {
@@ -117,28 +120,32 @@ export default function Overview() {
             .sort((a, b) => b.declined_revenue - a.declined_revenue)
             .slice(0, 3);
 
+          const r = ov.risks;
+          const op = ov.opportunities;
+          const isEn = t('nav.overview') === 'Overview';
+
           const risks = [
             {
-              title: "头部集中度过高",
-              trigger: `Top10 Publisher 贡献 ${(top10Share * 100).toFixed(0)}% GMV${top10Share > 0.5 ? '，远超 50% 警戒线' : ''}，任一流失将造成显著收入波动`,
-              action: "启动 Tier2 加速孵化计划，90 天内培养 5 个新 Core Driver",
-              owner: "BD Lead",
+              title: r.concentrationTitle,
+              trigger: `Top10 Publisher ${isEn ? 'contributes' : '贡献'} ${(top10Share * 100).toFixed(0)}% GMV${top10Share > 0.5 ? (isEn ? ', far exceeds 50% threshold' : '，远超 50% 警戒线') : ''}. ${isEn ? 'Loss of any top publisher would cause significant revenue impact.' : '任一流失将造成显著收入波动'}`,
+              action: r.concentrationAction,
+              owner: r.concentrationOwner,
               deadline: "Q2 2026",
               linkPage: "Concentration",
             },
             {
-              title: "Deal/Coupon 结构过重",
-              trigger: `Deal GMV 占比 ${(dealShare * 100).toFixed(0)}%${dealShare > 0.35 ? '，超出 35% 健康上限' : ''}，存在折扣依赖与利润侵蚀风险`,
-              action: "提高 Content 类佣金率 2%，降低 Coupon 类佣金率 1%，激励结构迁移",
-              owner: "Program Manager",
+              title: r.dealTitle,
+              trigger: `Deal GMV ${isEn ? 'share' : '占比'} ${(dealShare * 100).toFixed(0)}%${dealShare > 0.35 ? (isEn ? ', exceeds 35% healthy limit' : '，超出 35% 健康上限') : ''}. ${isEn ? 'Discount dependency and margin erosion risk.' : '存在折扣依赖与利润侵蚀风险'}`,
+              action: r.dealAction,
+              owner: r.dealOwner,
               deadline: "Q1 2026",
               linkPage: "MixHealth",
             },
             {
-              title: "交易审批率偏低",
-              trigger: `整体 Approval Rate ${(approvalRate * 100).toFixed(0)}%${approvalRate < 0.85 ? '，低于 85% 健康线' : ''}。Declined 集中在 ${topDeclined.map(p => p.publisher_name).join(', ')}`,
-              action: "对高拒绝率 Publisher 启动治理审查流程",
-              owner: "Compliance",
+              title: r.approvalTitle,
+              trigger: `${isEn ? 'Overall Approval Rate' : '整体 Approval Rate'} ${(approvalRate * 100).toFixed(0)}%${approvalRate < 0.85 ? (isEn ? ', below 85% healthy line' : '，低于 85% 健康线') : ''}. ${isEn ? 'Declined concentrated at' : 'Declined 集中在'} ${topDeclined.map(p => p.publisher_name).join(', ')}`,
+              action: r.approvalAction,
+              owner: r.approvalOwner,
               deadline: "2026-03",
               linkPage: "Approval",
             },
@@ -146,26 +153,26 @@ export default function Overview() {
 
           const opportunities = [
             {
-              title: "Content 渠道扩张空间大",
-              trigger: `Content GMV 仅 ${(contentShare * 100).toFixed(0)}%，但 Content Publisher 的 AOV 和 Approval Rate 均高于平均`,
-              action: "招募 20 个垂直领域 Content Creator，配套专属落地页与佣金激励",
-              owner: "Content Lead",
+              title: op.contentTitle,
+              trigger: `Content GMV ${isEn ? 'only' : '仅'} ${(contentShare * 100).toFixed(0)}%, ${isEn ? 'but Content Publishers show above-average AOV and Approval Rate' : '但 Content Publisher 的 AOV 和 Approval Rate 均高于平均'}`,
+              action: op.contentAction,
+              owner: op.contentOwner,
               deadline: "Q2 2026",
               linkPage: "Activation",
             },
             {
-              title: "激活率提升空间",
-              trigger: `当前活跃率 ${(activeRatio * 100).toFixed(0)}%，${totalPubs - activePubs} 个 Publisher 未产生收入`,
-              action: "启动 Publisher 激活计划，提供培训和专属素材",
-              owner: "BD Lead",
+              title: op.activationTitle,
+              trigger: `${isEn ? 'Current active rate' : '当前活跃率'} ${(activeRatio * 100).toFixed(0)}%, ${totalPubs - activePubs} ${isEn ? 'publishers have no revenue' : '个 Publisher 未产生收入'}`,
+              action: op.activationAction,
+              owner: op.activationOwner,
               deadline: "Q2 2026",
               linkPage: "Activation",
             },
             {
-              title: "平均产出可提升",
-              trigger: `GMV/Active Publisher 为 $${gmvPerActive.toFixed(0)}${gmvPerActive < 4000 ? '，低于目标' : ''}，存在提升空间`,
-              action: "优化 Publisher 培育体系，提供更好的工具和激励",
-              owner: "Product",
+              title: op.outputTitle,
+              trigger: `GMV/Active Publisher $${gmvPerActive.toFixed(0)}${gmvPerActive < 4000 ? (isEn ? ', below target' : '，低于目标') : ''}, ${isEn ? 'room for improvement' : '存在提升空间'}`,
+              action: op.outputAction,
+              owner: op.outputOwner,
               deadline: "2026-04",
               linkPage: "Efficiency",
             },
@@ -175,7 +182,7 @@ export default function Overview() {
             <>
               {/* KPI Cockpit */}
               <div>
-                <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">核心 KPI</h2>
+                <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">{ov.coreKpis}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {kpis.map((kpi, i) => (
                     <KPICard key={i} {...kpi} />
@@ -188,7 +195,7 @@ export default function Overview() {
                 <div>
                   <h2 className="text-sm font-semibold text-red-500/80 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-red-500" />
-                    Top 3 风险
+                    {ov.top3Risks}
                   </h2>
                   <div className="space-y-3">
                     {risks.map((r, i) => (
@@ -200,7 +207,7 @@ export default function Overview() {
                 <div>
                   <h2 className="text-sm font-semibold text-blue-500/80 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    Top 3 机会
+                    {ov.top3Opportunities}
                   </h2>
                   <div className="space-y-3">
                     {opportunities.map((o, i) => (
@@ -212,17 +219,17 @@ export default function Overview() {
 
               {/* Quick links */}
               <div className="bg-white rounded-2xl border border-slate-200 p-5">
-                <h3 className="text-sm font-semibold text-slate-700 mb-3">快速跳转</h3>
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">{ov.quickLinks}</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {[
-                    { label: "激活漏斗", page: "Activation" },
-                    { label: "集中度分析", page: "Concentration" },
-                    { label: "结构健康", page: "MixHealth" },
-                    { label: "效率象限", page: "Efficiency" },
-                    { label: "交易质量", page: "Approval" },
-                    { label: "分层治理", page: "OperatingSystem" },
-                    { label: "行动计划", page: "ActionPlan" },
-                    { label: "数据接入", page: "Input" },
+                    { label: ov.quickLinkLabels.activation, page: "Activation" },
+                    { label: ov.quickLinkLabels.concentration, page: "Concentration" },
+                    { label: ov.quickLinkLabels.mixHealth, page: "MixHealth" },
+                    { label: ov.quickLinkLabels.efficiency, page: "Efficiency" },
+                    { label: ov.quickLinkLabels.approval, page: "Approval" },
+                    { label: ov.quickLinkLabels.operatingSystem, page: "OperatingSystem" },
+                    { label: ov.quickLinkLabels.actionPlan, page: "ActionPlan" },
+                    { label: ov.quickLinkLabels.input, page: "Input" },
                   ].map((link) => (
                     <Link
                       key={link.page}
