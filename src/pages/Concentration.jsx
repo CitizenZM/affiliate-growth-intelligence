@@ -8,36 +8,39 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/components/LanguageContext";
 
-const evidenceColumns = [
-  { key: "rank", label: "#" },
-  { key: "name", label: "Publisher" },
-  { key: "gmv", label: "GMV" },
-  { key: "pct", label: "占比" },
-  { key: "cumPct", label: "累计" },
-];
 
-const derivationNotes = [
-  {
-    title: "排序规则",
-    items: [
-      { label: "排序字段", value: "total_revenue DESC" },
-      { label: "分母", value: "Total GMV = sum(total_revenue)" },
-    ],
-  },
-  {
-    title: "阈值说明",
-    items: [
-      { label: "健康线", value: "Top10 ≤ 50%" },
-      { label: "风险线", value: "Top10 > 60%" },
-      { label: "50% 覆盖", value: "达到 50% GMV 所需最少 publisher 数" },
-    ],
-  },
-];
 
 export default function Concentration() {
   const [selectedDataset, setSelectedDataset] = useState(null);
   const { t } = useLanguage();
   const co = t('concentration');
+  const isEn = t('nav.overview') === 'Overview';
+
+  const derivationNotes = [
+    {
+      title: co.derivation.sortTitle,
+      items: [
+        { label: isEn ? "Sort Field" : "排序字段", value: co.derivation.sortField },
+        { label: isEn ? "Denominator" : "分母", value: co.derivation.denominator },
+      ],
+    },
+    {
+      title: co.derivation.thresholdTitle,
+      items: [
+        { label: isEn ? "Health Line" : "健康线", value: co.derivation.healthLine },
+        { label: isEn ? "Risk Line" : "风险线", value: co.derivation.riskLine },
+        { label: isEn ? "50% Coverage" : "50% 覆盖", value: co.derivation.coverage },
+      ],
+    },
+  ];
+
+  const evidenceColumns = [
+    { key: "rank", label: co.cols.rank },
+    { key: "name", label: co.cols.name },
+    { key: "gmv", label: co.cols.gmv },
+    { key: "pct", label: co.cols.pct },
+    { key: "cumPct", label: co.cols.cumPct },
+  ];
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
@@ -93,24 +96,30 @@ export default function Concentration() {
           }));
 
           // Build conclusion
-          let conclusion = `Top10 Publisher 贡献 ${(top10Share * 100).toFixed(0)}% GMV`;
+          let conclusion = isEn
+            ? `Top10 Publishers contribute ${(top10Share * 100).toFixed(0)}% GMV`
+            : `Top10 Publisher 贡献 ${(top10Share * 100).toFixed(0)}% GMV`;
           let conclusionStatus = 'good';
           
           if (top10Share > 0.6) {
-            conclusion += '，远超 60% 风险线';
+            conclusion += isEn ? ', far exceeds 60% risk line' : '，远超 60% 风险线';
             conclusionStatus = 'bad';
           } else if (top10Share > 0.5) {
-            conclusion += '，超出 50% 健康线';
+            conclusion += isEn ? ', exceeds 50% healthy threshold' : '，超出 50% 健康线';
             conclusionStatus = 'warning';
           } else {
-            conclusion += '，处于健康区间';
+            conclusion += isEn ? ', within healthy range' : '，处于健康区间';
           }
 
           if (publishersTo50 < 5) {
-            conclusion += `。仅需 ${publishersTo50} 个 Publisher 即覆盖 50% GMV，头部依赖风险显著。`;
+            conclusion += isEn
+              ? `. Only ${publishersTo50} publishers needed to cover 50% GMV — significant top-heavy risk.`
+              : `。仅需 ${publishersTo50} 个 Publisher 即覆盖 50% GMV，头部依赖风险显著。`;
             conclusionStatus = 'bad';
           } else if (publishersTo50 < 10) {
-            conclusion += `。需 ${publishersTo50} 个 Publisher 覆盖 50% GMV，存在一定集中风险。`;
+            conclusion += isEn
+              ? `. ${publishersTo50} publishers needed to cover 50% GMV — moderate concentration risk.`
+              : `。需 ${publishersTo50} 个 Publisher 覆盖 50% GMV，存在一定集中风险。`;
             if (conclusionStatus === 'good') conclusionStatus = 'warning';
           }
 
@@ -175,13 +184,22 @@ export default function Concentration() {
       </DataLoader>
 
       <InsightsPanel
-        insights={[
+        insights={isEn ? [
+          "The Pareto curve visualizes the '20% of publishers generate 80% of GMV' phenomenon — a steeper curve means higher concentration",
+          "Publishers needed for 50% GMV is a key top-heavy dependency metric; healthy value should be ≥10",
+          "Top10 GMV share above 60% is high risk — loss of any top channel could cause major revenue impact",
+          "Moderate concentration (Top10 at 40-50%) ensures stable output without over-relying on a few channels"
+        ] : [
           "Pareto曲线可视化了'20%的Publisher产生80%的GMV'现象，曲线越陡峭说明集中度越高",
           "50% GMV所需Publisher数量是衡量头部依赖的关键指标，健康值应≥10个",
           "Top10 GMV占比超过60%属于高风险状态，任何一个头部渠道的流失都可能对业务造成重大影响",
           "集中度适中（Top10在40-50%）既能保证稳定产出，又不会过度依赖少数渠道"
         ]}
-        problems={[
+        problems={isEn ? [
+          "If Top1 share exceeds 30%, dependency on a single channel is at a dangerous level — launch diversification immediately",
+          "If the cumulative GMV curve reaches 50% in the first 10% of publishers, long-tail channels have almost no contribution",
+          "Comparing Pareto curves across time periods helps identify whether concentration is improving or worsening"
+        ] : [
           "如果Top1占比超过30%，说明对单一渠道的依赖已到危险水平，需立即启动分散化策略",
           "累计GMV曲线如果在前10%就达到50%，说明长尾渠道几乎没有贡献，需要激活策略",
           "对比不同时期的Pareto曲线走势，可以判断集中度改善或恶化的趋势"
