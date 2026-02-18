@@ -1,20 +1,21 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import InsightsPanel from "../components/dashboard/InsightsPanel";
+import { useLanguage } from "@/components/LanguageContext";
 
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const tasks = [
-  { name: "Content Creator 招募", start: 0, duration: 3, color: "#3B82F6", milestone: false },
-  { name: "Deal 佣金结构调整", start: 1, duration: 2, color: "#EF4444", milestone: false },
-  { name: "Tier2 加速孵化", start: 1, duration: 4, color: "#8B5CF6", milestone: false },
-  { name: "落地页 A/B 测试", start: 2, duration: 2, color: "#06B6D4", milestone: false },
-  { name: "Q1 Review 里程碑", start: 2, duration: 1, color: "#F59E0B", milestone: true },
-  { name: "社交视频 Pilot", start: 3, duration: 3, color: "#10B981", milestone: false },
-  { name: "治理白名单发布", start: 4, duration: 1, color: "#DC2626", milestone: true },
-  { name: "H1 Performance Review", start: 5, duration: 1, color: "#F59E0B", milestone: true },
-  { name: "Content 占比达标检查", start: 6, duration: 2, color: "#3B82F6", milestone: false },
-  { name: "年度策略刷新", start: 9, duration: 3, color: "#8B5CF6", milestone: false },
+const taskDefs = [
+  { key: "contentRecruit", start: 0, duration: 3, color: "#3B82F6", milestone: false },
+  { key: "dealCommission", start: 1, duration: 2, color: "#EF4444", milestone: false },
+  { key: "tier2Incubate", start: 1, duration: 4, color: "#8B5CF6", milestone: false },
+  { key: "landingAbTest", start: 2, duration: 2, color: "#06B6D4", milestone: false },
+  { key: "q1Review", start: 2, duration: 1, color: "#F59E0B", milestone: true },
+  { key: "socialVideoPilot", start: 3, duration: 3, color: "#10B981", milestone: false },
+  { key: "governanceWhitelist", start: 4, duration: 1, color: "#DC2626", milestone: true },
+  { key: "h1Review", start: 5, duration: 1, color: "#F59E0B", milestone: true },
+  { key: "contentCheck", start: 6, duration: 2, color: "#3B82F6", milestone: false },
+  { key: "annualRefresh", start: 9, duration: 3, color: "#8B5CF6", milestone: false },
 ];
 
 const promoEvents = [
@@ -26,12 +27,15 @@ const promoEvents = [
 
 export default function Timeline() {
   const currentMonth = new Date().getMonth();
+  const { t } = useLanguage();
+  const tl = t('timeline');
+  const tasks = taskDefs.map(td => ({ ...td, name: tl.tasks[td.key] || td.key }));
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">甘特图与节点</h1>
-        <p className="text-sm text-slate-500 mt-1">12 个月行动时间线，叠加促销日历</p>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{tl.title}</h1>
+        <p className="text-sm text-slate-500 mt-1">{tl.subtitle}</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 p-6 overflow-x-auto">
@@ -54,7 +58,7 @@ export default function Timeline() {
 
         {/* Promo events */}
         <div className="flex mt-2 mb-1">
-          <div className="w-[200px] flex-shrink-0 text-[10px] text-slate-400 font-medium pr-3 text-right">促销日历</div>
+          <div className="w-[200px] flex-shrink-0 text-[10px] text-slate-400 font-medium pr-3 text-right">{t('shared.promoCalendar')}</div>
           <div className="flex-1 relative h-6">
             {promoEvents.map((e) => (
               <div
@@ -109,7 +113,7 @@ export default function Timeline() {
               className="absolute top-4 text-[10px] text-blue-600 font-medium -translate-x-1/2"
               style={{ left: `${(currentMonth / 12) * 100}%` }}
             >
-              今天
+              {t('shared.today')}
             </div>
           </div>
         </div>
@@ -117,9 +121,9 @@ export default function Timeline() {
 
       {/* Legend */}
       <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400" /> 里程碑</span>
-        <span className="flex items-center gap-1.5"><span className="w-8 h-2 rounded bg-blue-500/70" /> 任务</span>
-        <span className="flex items-center gap-1.5"><span className="w-0.5 h-3 bg-blue-600" /> 当前日期</span>
+        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400" /> {t('shared.milestone')}</span>
+        <span className="flex items-center gap-1.5"><span className="w-8 h-2 rounded bg-blue-500/70" /> {t('shared.task')}</span>
+        <span className="flex items-center gap-1.5"><span className="w-0.5 h-3 bg-blue-600" /> {t('shared.currentDate')}</span>
       </div>
 
       <InsightsPanel
