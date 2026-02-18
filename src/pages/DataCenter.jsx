@@ -27,10 +27,10 @@ const typeMappings = [
   { original: "Social / Video", mapped: "social_video", rule: "tag contains 'social' OR 'video'" },
 ];
 
-const computeLogs = [
-  { version: "v2026.02", time: "2026-02-06 14:32", duration: "2.3s", rows: 1245, status: "success", notes: "完整计算 0-10 章" },
-  { version: "v2026.01", time: "2026-01-15 09:18", duration: "1.8s", rows: 1189, status: "success", notes: "缺 Daily GMV" },
-  { version: "v2025.12", time: "2025-12-20 16:45", duration: "2.1s", rows: 1102, status: "warning", notes: "3 条 publisher_type 未映射" },
+const computeLogsData = [
+  { version: "v2026.02", time: "2026-02-06 14:32", duration: "2.3s", rows: 1245, status: "success", notesKey: "log1" },
+  { version: "v2026.01", time: "2026-01-15 09:18", duration: "1.8s", rows: 1189, status: "success", notesKey: "log2" },
+  { version: "v2025.12", time: "2025-12-20 16:45", duration: "2.1s", rows: 1102, status: "warning", notesKey: "log3" },
 ];
 
 const statusIcon = {
@@ -42,6 +42,7 @@ const statusIcon = {
 export default function DataCenter() {
   const { t } = useLanguage();
   const dc = t('dataCenter');
+  const computeLogs = computeLogsData.map(l => ({ ...l, notes: dc.logNotes[l.notesKey] }));
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
       <div>
