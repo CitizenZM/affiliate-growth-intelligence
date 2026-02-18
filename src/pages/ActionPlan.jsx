@@ -79,6 +79,8 @@ export default function ActionPlan() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["actionItems"] }),
   });
 
+  const { language } = useLanguage();
+
   const generateActionsMutation = useMutation({
     mutationFn: async () => {
       const allFindings = sections
@@ -87,21 +89,35 @@ export default function ActionPlan() {
 
       const actions = [];
       for (const finding of allFindings.slice(0, 10)) {
-        const workstream = finding.title?.includes('内容') ? 'content_expansion' :
-                          finding.title?.includes('Deal') || finding.title?.includes('优惠') ? 'deal_optimization' :
-                          finding.title?.includes('社交') || finding.title?.includes('视频') ? 'social_video' :
-                          finding.title?.includes('Tier') || finding.title?.includes('分层') ? 'tier_management' :
-                          finding.title?.includes('治理') ? 'governance' : 'other';
+        const titleText = finding.action || finding.title || '';
+        const workstream = (titleText.includes('内容') || titleText.toLowerCase().includes('content')) ? 'content_expansion' :
+                          (titleText.includes('Deal') || titleText.includes('优惠') || titleText.toLowerCase().includes('deal') || titleText.toLowerCase().includes('coupon')) ? 'deal_optimization' :
+                          (titleText.includes('社交') || titleText.includes('视频') || titleText.toLowerCase().includes('social') || titleText.toLowerCase().includes('video') || titleText.toLowerCase().includes('tiktok')) ? 'social_video' :
+                          (titleText.includes('Tier') || titleText.includes('分层')) ? 'tier_management' :
+                          (titleText.includes('治理') || titleText.toLowerCase().includes('governance')) ? 'governance' : 'other';
         
         const priority = finding.type === 'risk' ? 'high' : 'medium';
 
+        // Use AI to translate the title if needed
+        let title = titleText;
+        if (language === 'en' && /[\u4e00-\u9fff]/.test(titleText)) {
+          try {
+            const res = await base44.integrations.Core.InvokeLLM({
+              prompt: `Translate this Chinese affiliate marketing action item title to English, concise and professional (max 10 words): "${titleText}"`,
+            });
+            title = typeof res === 'string' ? res.trim() : titleText;
+          } catch {
+            title = titleText;
+          }
+        }
+
         actions.push({
-          title: finding.action || finding.title,
+          title,
           workstream,
           priority,
           status: 'todo',
           evidence_link: finding.evidence_link,
-          notes: `来源: ${finding.trigger || '数据分析'}`,
+          notes: language === 'en' ? `Source: ${finding.trigger || 'Data Analysis'}` : `来源: ${finding.trigger || '数据分析'}`,
         });
       }
 
