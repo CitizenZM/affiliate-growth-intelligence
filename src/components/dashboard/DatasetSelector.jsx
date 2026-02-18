@@ -3,37 +3,29 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "lucide-react";
-
-const getStatusDisplay = (dataset) => {
-  if (!dataset) return { bg: "bg-slate-50", text: "text-slate-700", label: "未知" };
-  
-  if (dataset.status === 'completed') {
-    return { bg: "bg-emerald-50", text: "text-emerald-700", label: "已完成" };
-  }
-  if (dataset.status === 'error') {
-    return { bg: "bg-red-50", text: "text-red-700", label: "失败" };
-  }
-  if (dataset.status === 'pending') {
-    return { bg: "bg-amber-50", text: "text-amber-700", label: "待处理" };
-  }
-  if (dataset.status === 'processing') {
-    const progress = dataset.processing_progress || 0;
-    return { 
-      bg: "bg-blue-50", 
-      text: "text-blue-700", 
-      label: `${Math.round(progress)}%`
-    };
-  }
-  return { bg: "bg-slate-50", text: "text-slate-700", label: "未知" };
-};
+import { useLanguage } from "@/components/LanguageContext";
 
 export default function DatasetSelector({ value, onChange }) {
+  const { t } = useLanguage();
+  const ds = t('datasetSelector');
+
+  const getStatusDisplay = (dataset) => {
+    if (!dataset) return { bg: "bg-slate-50", text: "text-slate-700", label: ds.unknown };
+    if (dataset.status === 'completed') return { bg: "bg-emerald-50", text: "text-emerald-700", label: ds.completed };
+    if (dataset.status === 'error') return { bg: "bg-red-50", text: "text-red-700", label: ds.failed };
+    if (dataset.status === 'pending') return { bg: "bg-amber-50", text: "text-amber-700", label: ds.pending };
+    if (dataset.status === 'processing') {
+      const progress = dataset.processing_progress || 0;
+      return { bg: "bg-blue-50", text: "text-blue-700", label: `${Math.round(progress)}%` };
+    }
+    return { bg: "bg-slate-50", text: "text-slate-700", label: ds.unknown };
+  };
+
   const { data: datasets = [], isLoading } = useQuery({
     queryKey: ['datasets'],
     queryFn: async () => {
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('数据加载超时（>10秒），请刷新页面')), 10000)
+        setTimeout(() => reject(new Error('Timeout')), 10000)
       );
       const dataPromise = base44.entities.DataUpload.list('-created_date', 50);
       return Promise.race([dataPromise, timeoutPromise]);
@@ -59,7 +51,7 @@ export default function DatasetSelector({ value, onChange }) {
   return (
     <Select value={value || ''} onValueChange={onChange}>
       <SelectTrigger className="w-[280px]">
-        <SelectValue placeholder="选择数据集" />
+              <SelectValue placeholder={ds.placeholder} />
       </SelectTrigger>
       <SelectContent>
         {datasets.map(d => {
