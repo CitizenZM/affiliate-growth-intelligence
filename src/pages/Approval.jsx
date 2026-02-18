@@ -6,6 +6,7 @@ import DatasetSelector from "../components/dashboard/DatasetSelector";
 import DataLoader from "../components/dashboard/DataLoader";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/components/LanguageContext";
 
 const derivationNotes = [
   {
@@ -29,12 +30,14 @@ const derivationNotes = [
 
 export default function Approval() {
   const [selectedDataset, setSelectedDataset] = useState(null);
+  const { t } = useLanguage();
+  const ap = t('approval');
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">交易质量</h1>
-          <p className="text-sm text-slate-500 mt-1">Approval/Pending/Declined 分布与异常 Publisher 识别</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{ap.title}</h1>
+          <p className="text-sm text-slate-500 mt-1">{ap.subtitle}</p>
         </div>
         <DatasetSelector value={selectedDataset} onChange={setSelectedDataset} />
       </div>
@@ -67,17 +70,17 @@ export default function Approval() {
               name: p.publisher_name,
               declined: `$${(p.declined_revenue / 1000).toFixed(0)}K`,
               rate: `${(p.decline_rate * 100).toFixed(0)}%`,
-              tag: p.decline_rate > 0.7 ? "疑似欺诈" : p.decline_rate > 0.6 ? "异常高拒" : "质量偏低"
+              tag: p.decline_rate > 0.7 ? ap.tags.fraud : p.decline_rate > 0.6 ? ap.tags.highDecline : ap.tags.lowQuality
             }));
 
           // Format evidence table
           const evidenceColumns = [
-            { key: "publisher_name", label: "Publisher" },
-            { key: "total_revenue", label: "Total GMV" },
-            { key: "approved_revenue", label: "Approved" },
-            { key: "pending_revenue", label: "Pending" },
-            { key: "declined_revenue", label: "Declined" },
-            { key: "approval_rate", label: "Approval %" },
+            { key: "publisher_name", label: ap.cols.publisher },
+            { key: "total_revenue", label: ap.cols.total },
+            { key: "approved_revenue", label: ap.cols.approved },
+            { key: "pending_revenue", label: ap.cols.pending },
+            { key: "declined_revenue", label: ap.cols.declined },
+            { key: "approval_rate", label: ap.cols.approvalRate },
           ];
 
           const evidenceData = approvalTable.map(p => ({
@@ -101,7 +104,7 @@ export default function Approval() {
               >
                 {/* Waterfall */}
                 <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-4">GMV 审批瀑布</h3>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-4">{ap.waterfallTitle}</h3>
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={waterfallData} barCategoryGap="30%">
@@ -135,7 +138,7 @@ export default function Approval() {
                 {/* Risk publishers */}
                 {riskPublishers.length > 0 && (
                   <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                    <h3 className="text-sm font-semibold text-red-600 mb-3">⚠ 高拒绝率 Publisher</h3>
+                    <h3 className="text-sm font-semibold text-red-600 mb-3">{ap.riskTitle}</h3>
                     <div className="space-y-2">
                       {riskPublishers.map((p) => (
                         <div key={p.name} className="flex items-center justify-between p-3 bg-red-50/50 rounded-xl border border-red-100">
@@ -154,7 +157,7 @@ export default function Approval() {
                 )}
 
                 <EvidenceTable
-                  title="交易质量明细"
+                  title={ap.tableTitle}
                   columns={evidenceColumns}
                   data={evidenceData}
                   derivationNotes={derivationNotes}
