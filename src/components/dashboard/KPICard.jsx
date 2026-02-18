@@ -32,6 +32,8 @@ const statusColors = {
 
 export default function KPICard({ title, value, target, status = "green", trend, trendLabel, evidenceRows, unit = "" }) {
   const [showEvidence, setShowEvidence] = useState(false);
+  const { t } = useLanguage();
+  const isEn = t('nav.overview') === 'Overview';
   const colors = statusColors[status];
 
   return (
