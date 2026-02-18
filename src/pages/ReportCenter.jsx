@@ -1,38 +1,30 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Eye, ChevronRight, Sparkles, Loader2 } from "lucide-react";
+import { FileText, Download, Eye, Sparkles, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import DatasetSelector from "../components/dashboard/DatasetSelector";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import { useLanguage } from "@/components/LanguageContext";
 
-const chapters = [
-  { id: 0, title: "Executive Summary", status: "ready", description: "CEO 一页摘要，核心 KPI 与风险机会" },
-  { id: 1, title: "Activation & Funnel", status: "ready", description: "激活率、Active Ratio、Core Driver 分析" },
-  { id: 2, title: "Concentration Analysis", status: "ready", description: "Pareto 曲线、Top10 集中度、去集中度建议" },
-  { id: 3, title: "Mix Health", status: "ready", description: "类型结构分布、目标区间对比、映射规则" },
-  { id: 4, title: "Efficiency Quadrant", status: "ready", description: "CPA vs AOV 四象限分析、Publisher 效率排名" },
-  { id: 5, title: "Approval & Quality", status: "ready", description: "审批瀑布、异常 Publisher 识别、治理建议" },
-  { id: 6, title: "Operating System", status: "ready", description: "四层分级体系、差异化策略模板" },
-  { id: 7, title: "Action Plan", status: "ready", description: "行动计划汇总、KPI 跟踪、Owner 分配" },
-  { id: 8, title: "Timeline & Milestones", status: "partial", description: "12 个月甘特图（需 Daily GMV 补充完整）" },
-  { id: 9, title: "Website & Landing Page", status: "partial", description: "官网分析（需联网抓取数据）" },
-  { id: 10, title: "Recommendations", status: "ready", description: "总结性建议与下一步行动" },
-];
-
-const statusColors = {
-  ready: { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500", label: "就绪" },
-  partial: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500", label: "部分" },
-  missing: { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500", label: "缺数据" },
-};
+const chapterStatuses = ["ready","ready","ready","ready","ready","ready","ready","ready","partial","partial","ready"];
 
 export default function ReportCenter() {
   const [selectedChapter, setSelectedChapter] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [datasetId, setDatasetId] = useState(null);
   const [downloading, setDownloading] = useState(null);
+  const { t } = useLanguage();
+  const rc = t('reportCenter');
+
+  const chapters = rc.chapters.map((ch, i) => ({ id: i, title: ch.title, description: ch.desc, status: chapterStatuses[i] }));
+  const statusColors = {
+    ready: { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500", label: rc.status.ready },
+    partial: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500", label: rc.status.partial },
+    missing: { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500", label: rc.status.missing },
+  };
 
   // Fetch report sections
   const { data: sections = [], isLoading } = useQuery({
@@ -164,8 +156,8 @@ export default function ReportCenter() {
     <div className="max-w-[1400px] mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">报告中心</h1>
-          <p className="text-sm text-slate-500 mt-1">0—10 章完整报告，支持多格式导出</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{rc.title}</h1>
+          <p className="text-sm text-slate-500 mt-1">{rc.subtitle}</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -176,11 +168,11 @@ export default function ReportCenter() {
             disabled={downloading === 'board' || !datasetId}
           >
             {downloading === 'board' ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5" />
-            )}
-            Board 摘要版
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+              {rc.boardSummary}
           </Button>
           <Button 
             size="sm" 
@@ -189,7 +181,7 @@ export default function ReportCenter() {
             disabled={generating || !datasetId}
           >
             {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-            {generating ? "生成中..." : "生成完整报告"}
+            {generating ? rc.generating : rc.generateFull}
           </Button>
         </div>
       </div>
@@ -202,7 +194,7 @@ export default function ReportCenter() {
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
         {/* Chapter nav */}
         <div className="bg-white rounded-2xl border border-slate-200 p-3 h-fit lg:sticky lg:top-24">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">章节目录</p>
+          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">{rc.chapterNav}</p>
           <div className="space-y-0.5">
             {chapters.map((ch) => {
               const sc = statusColors[ch.status];
@@ -249,7 +241,7 @@ export default function ReportCenter() {
               <div className="bg-white rounded-xl p-6 mt-4 border border-slate-100 min-h-[300px]">
                 {currentSection.conclusion && (
                   <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-xs font-semibold text-blue-700 mb-1">结论</p>
+                    <p className="text-xs font-semibold text-blue-700 mb-1">{rc.conclusion}</p>
                     <p className="text-sm text-slate-700">{currentSection.conclusion}</p>
                   </div>
                 )}
@@ -264,7 +256,7 @@ export default function ReportCenter() {
 
                 {currentSection.key_findings && currentSection.key_findings.length > 0 && (
                   <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-xs font-semibold text-amber-700 mb-2">关键发现</p>
+                    <p className="text-xs font-semibold text-amber-700 mb-2">{rc.keyFindings}</p>
                     <ul className="space-y-1">
                       {currentSection.key_findings.map((finding, idx) => (
                         <li key={idx} className="text-sm text-slate-700">
@@ -279,8 +271,8 @@ export default function ReportCenter() {
               <div className="bg-slate-50 rounded-xl p-6 mt-4 border border-slate-100 min-h-[300px] flex items-center justify-center">
                 <div className="text-center">
                   <Eye className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-                  <p className="text-sm text-slate-500">点击"生成完整报告"后，此处将显示报告预览</p>
-                  <p className="text-xs text-slate-400 mt-1">支持所见即所得编辑、图表替换、证据表嵌入</p>
+                  <p className="text-sm text-slate-500">{rc.noContent}</p>
+                  <p className="text-xs text-slate-400 mt-1">{rc.noContentSub}</p>
                 </div>
               </div>
             )}
@@ -288,7 +280,7 @@ export default function ReportCenter() {
 
           {/* Export options */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5">
-            <h3 className="text-sm font-semibold text-slate-700 mb-3">导出格式</h3>
+            <h3 className="text-sm font-semibold text-slate-700 mb-3">{rc.exportFormats}</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {["PDF", "Markdown"].map((fmt) => (
                 <button
