@@ -372,7 +372,7 @@ Return a JSON array of action items.`,
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-slate-400 text-sm">{ap.noItems}</td>
+                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400 text-sm">{ap.noItems}</td>
                 </tr>
               )}
             </tbody>
