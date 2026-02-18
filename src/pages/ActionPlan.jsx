@@ -90,47 +90,79 @@ export default function ActionPlan() {
         .flatMap(s => s.key_findings || [])
         .filter(f => f.type === 'risk' || f.type === 'opportunity');
 
-      const actions = [];
-      for (const finding of allFindings.slice(0, 10)) {
-        const titleText = finding.action || finding.title || '';
-        const workstream = (titleText.includes('内容') || titleText.toLowerCase().includes('content')) ? 'content_expansion' :
-                          (titleText.includes('Deal') || titleText.includes('优惠') || titleText.toLowerCase().includes('deal') || titleText.toLowerCase().includes('coupon')) ? 'deal_optimization' :
-                          (titleText.includes('社交') || titleText.includes('视频') || titleText.toLowerCase().includes('social') || titleText.toLowerCase().includes('video') || titleText.toLowerCase().includes('tiktok')) ? 'social_video' :
-                          (titleText.includes('Tier') || titleText.includes('分层')) ? 'tier_management' :
-                          (titleText.includes('治理') || titleText.toLowerCase().includes('governance')) ? 'governance' : 'other';
-        
-        const priority = finding.type === 'risk' ? 'high' : 'medium';
+      if (allFindings.length === 0) return 0;
 
-        // Use AI to translate the title if needed
-        let title = titleText;
-        if (language === 'en' && /[\u4e00-\u9fff]/.test(titleText)) {
-          try {
-            const res = await base44.integrations.Core.InvokeLLM({
-              prompt: `Translate this Chinese affiliate marketing action item title to English, concise and professional (max 10 words): "${titleText}"`,
-            });
-            title = typeof res === 'string' ? res.trim() : titleText;
-          } catch {
-            title = titleText;
+      const today = new Date().toISOString().split('T')[0];
+      const findingsSummary = allFindings.slice(0, 12).map((f, i) => ({
+        index: i,
+        type: f.type,
+        title: f.title || '',
+        action: f.action || '',
+        trigger: f.trigger || '',
+        evidence_link: f.evidence_link || '',
+      }));
+
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are an affiliate marketing program manager. Today's date is ${today}.
+        
+Based on these findings from an affiliate program analysis, generate enriched action items:
+
+${JSON.stringify(findingsSummary, null, 2)}
+
+For each finding, create a detailed action item with:
+1. A clear, actionable title in ${language === 'en' ? 'English' : 'Chinese'}
+2. The best owner role (e.g. "Affiliate Manager", "Content Lead", "Partnerships", "Analytics", "Legal") based on task type
+3. A realistic due_date in YYYY-MM-DD format: high priority risks = 2-4 weeks, opportunities = 4-8 weeks, governance = 6-12 weeks
+4. A specific kpi_target string that measures success (e.g. "Active publisher rate > 40%", "CVR improvement +15%")
+5. The right workstream from: content_expansion, deal_optimization, social_video, landing_page, tier_management, governance, other
+6. Priority: "high" for risks, "medium" for opportunities, "low" for informational
+7. Tags: 3-5 relevant keywords as a comma-separated string (e.g. "activation, onboarding, email")
+8. A concise notes field summarizing WHY this action is needed based on the finding trigger
+
+Return a JSON array of action items.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            items: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  finding_index: { type: "number" },
+                  title: { type: "string" },
+                  workstream: { type: "string" },
+                  priority: { type: "string" },
+                  owner: { type: "string" },
+                  due_date: { type: "string" },
+                  kpi_target: { type: "string" },
+                  tags: { type: "string" },
+                  notes: { type: "string" },
+                }
+              }
+            }
           }
         }
+      });
 
-        actions.push({
-          title,
-          workstream,
-          priority,
+      const aiItems = result?.items || [];
+      for (const ai of aiItems) {
+        const finding = findingsSummary[ai.finding_index] || {};
+        await base44.entities.ActionItem.create({
+          title: ai.title,
+          workstream: ai.workstream || 'other',
+          priority: ai.priority || 'medium',
           status: 'todo',
-          evidence_link: finding.evidence_link,
-          notes: language === 'en' ? `Source: ${finding.trigger || 'Data Analysis'}` : `来源: ${finding.trigger || '数据分析'}`,
+          owner: ai.owner || '',
+          due_date: ai.due_date || '',
+          kpi_target: ai.kpi_target || '',
+          notes: ai.tags ? `${ai.notes}\n\nTags: ${ai.tags}` : ai.notes || '',
+          evidence_link: finding.evidence_link || '',
         });
       }
 
-      for (const action of actions) {
-        await base44.entities.ActionItem.create(action);
-      }
-
-      return actions.length;
+      return aiItems.length;
     },
-    onSuccess: (count) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["actionItems"] });
       setGeneratingActions(false);
     },
