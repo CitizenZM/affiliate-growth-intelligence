@@ -1,6 +1,28 @@
 import React, { useState } from "react";
 import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLanguage } from "@/components/LanguageContext";
+
+function StatusLabel({ status }) {
+  const { t } = useLanguage();
+  const isEn = t('nav.overview') === 'Overview';
+  const labels = {
+    green: isEn ? "Healthy" : "健康",
+    yellow: isEn ? "Watch" : "关注",
+    red: isEn ? "Risk" : "风险",
+  };
+  const colors = {
+    green: { bg: "bg-emerald-50", dot: "bg-emerald-500", text: "text-emerald-700", border: "border-emerald-200" },
+    yellow: { bg: "bg-amber-50", dot: "bg-amber-500", text: "text-amber-700", border: "border-amber-200" },
+    red: { bg: "bg-red-50", dot: "bg-red-500", text: "text-red-700", border: "border-red-200" },
+  }[status];
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${colors.bg} ${colors.text} ${colors.border} border`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
+      {labels[status]}
+    </span>
+  );
+}
 
 const statusColors = {
   green: { bg: "bg-emerald-50", dot: "bg-emerald-500", text: "text-emerald-700", border: "border-emerald-200" },
