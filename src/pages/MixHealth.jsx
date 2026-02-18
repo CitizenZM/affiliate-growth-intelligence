@@ -5,6 +5,7 @@ import InsightsPanel from "../components/dashboard/InsightsPanel";
 import DatasetSelector from "../components/dashboard/DatasetSelector";
 import DataLoader from "../components/dashboard/DataLoader";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import { useLanguage } from "@/components/LanguageContext";
 
 const typeColors = {
   'content': "#3B82F6",
@@ -64,13 +65,15 @@ const derivationNotes = [
 
 export default function MixHealth() {
   const [selectedDataset, setSelectedDataset] = useState(null);
+  const { t } = useLanguage();
+  const mh = t('mixHealth');
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">结构健康</h1>
-          <p className="text-sm text-slate-500 mt-1">GMV 类型分布与数量分布的健康度评估</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{mh.title}</h1>
+          <p className="text-sm text-slate-500 mt-1">{mh.subtitle}</p>
         </div>
         <DatasetSelector value={selectedDataset} onChange={setSelectedDataset} />
       </div>
@@ -97,7 +100,7 @@ export default function MixHealth() {
           const evidenceData = mixHealthTable.map(item => {
             const gmvPct = parseFloat(item.gmv_share);
             const target = typeTargets[item.type] || { min: 0, max: 100 };
-            let status = '健康';
+            let status = mh.statusLabels.healthy;
             let targetPct = `${target.min}-${target.max}%`;
             
             if (target.max === target.min) {
@@ -105,9 +108,9 @@ export default function MixHealth() {
             }
             
             if (gmvPct > target.max) {
-              status = '超标';
+              status = mh.statusLabels.exceed;
             } else if (gmvPct < target.min) {
-              status = '偏低';
+              status = mh.statusLabels.low;
             }
 
             return {
@@ -152,7 +155,7 @@ export default function MixHealth() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {/* Donut - GMV */}
                 <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-4">GMV 类型占比</h3>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-4">{mh.gmvChartTitle}</h3>
                   <div className="h-[280px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -182,7 +185,7 @@ export default function MixHealth() {
 
                 {/* Bar - Count */}
                 <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-4">Publisher 数量 vs 目标</h3>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-4">{mh.countChartTitle}</h3>
                   <div className="h-[280px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={countData} barCategoryGap="25%">
@@ -190,8 +193,8 @@ export default function MixHealth() {
                         <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94A3B8" }} />
                         <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} />
                         <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0" }} />
-                        <Bar dataKey="count" fill="#3B82F6" radius={[6, 6, 0, 0]} barSize={24} name="当前" />
-                        <Bar dataKey="target" fill="#E2E8F0" radius={[6, 6, 0, 0]} barSize={24} name="目标" />
+                        <Bar dataKey="count" fill="#3B82F6" radius={[6, 6, 0, 0]} barSize={24} name={mh.current} />
+                        <Bar dataKey="target" fill="#E2E8F0" radius={[6, 6, 0, 0]} barSize={24} name={mh.target} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -199,8 +202,15 @@ export default function MixHealth() {
               </div>
 
               <EvidenceTable
-                title="类型结构明细"
-                columns={evidenceColumns}
+                title={mh.tableTitle}
+                columns={[
+                  { key: "type", label: mh.cols.type },
+                  { key: "count", label: mh.cols.count },
+                  { key: "gmv", label: mh.cols.gmv },
+                  { key: "gmv_share", label: mh.cols.gmvShare },
+                  { key: "targetPct", label: mh.cols.targetPct },
+                  { key: "status", label: mh.cols.status },
+                ]}
                 data={evidenceData}
                 derivationNotes={derivationNotes}
               />
