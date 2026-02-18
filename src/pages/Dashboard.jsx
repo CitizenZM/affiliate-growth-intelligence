@@ -9,10 +9,13 @@ import InsightsPanel from "../components/dashboard/InsightsPanel";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Sparkles, Loader2, Database } from "lucide-react";
-import { motion } from "framer-motion";
+import { useLanguage } from "@/components/LanguageContext";
 
 export default function Dashboard() {
   const [selectedDatasetId, setSelectedDatasetId] = useState(null);
+  const { t } = useLanguage();
+  const db = t('dashboard');
+  const isEn = t('nav.overview') === 'Overview';
 
   // Get all datasets with timeout
   const { data: datasets = [], isLoading: datasetsLoading } = useQuery({
@@ -81,7 +84,7 @@ export default function Dashboard() {
       status: getMetric('active_ratio') < 0.4 ? "yellow" : getMetric('active_ratio') >= 0.5 ? "green" : "yellow",
     },
     {
-      title: "Top10 GMV 占比",
+      title: isEn ? "Top10 GMV Share" : "Top10 GMV 占比",
       value: `${(getMetric('top10_share') * 100).toFixed(0)}%`,
       target: "≤50%",
       status: getMetric('top10_share') > 0.7 ? "red" : getMetric('top10_share') > 0.5 ? "yellow" : "green",
@@ -104,9 +107,9 @@ export default function Dashboard() {
       status: getMetric('approval_rate') < 0.75 ? "red" : getMetric('approval_rate') < 0.85 ? "yellow" : "green",
     },
     {
-      title: "50% GMV 所需",
+      title: isEn ? "Publishers for 50% GMV" : "50% GMV 所需",
       value: `${getMetric('publishers_to_50pct')}`,
-      unit: " 个",
+      unit: isEn ? "" : " 个",
       status: getMetric('publishers_to_50pct') < 5 ? "red" : getMetric('publishers_to_50pct') < 10 ? "yellow" : "green",
     },
   ];
@@ -132,12 +135,12 @@ export default function Dashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <Database className="w-16 h-16 text-slate-300" />
-        <h2 className="text-xl font-semibold text-slate-700">暂无数据集</h2>
-        <p className="text-sm text-slate-500">请先在数据接入页面上传 CSV 文件</p>
+        <h2 className="text-xl font-semibold text-slate-700">{isEn ? "No datasets" : "暂无数据集"}</h2>
+        <p className="text-sm text-slate-500">{isEn ? "Please upload a CSV file on the Input page" : "请先在数据接入页面上传 CSV 文件"}</p>
         <Link to={createPageUrl('Input')}>
           <Button className="bg-blue-600 hover:bg-blue-700">
             <Sparkles className="w-4 h-4 mr-2" />
-            开始上传数据
+            {isEn ? "Upload Data" : "开始上传数据"}
           </Button>
         </Link>
       </div>
@@ -150,12 +153,12 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Affiliate Growth Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">一屏掌握渠道健康度与核心风险机会</p>
+          <p className="text-sm text-slate-500 mt-1">{isEn ? "Channel health & core risks at a glance" : "一屏掌握渠道健康度与核心风险机会"}</p>
         </div>
         <div className="flex gap-2">
           <Select value={selectedDatasetId || ''} onValueChange={setSelectedDatasetId}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="选择数据集" />
+              <SelectValue placeholder={isEn ? "Select Dataset" : "选择数据集"} />
             </SelectTrigger>
             <SelectContent>
               {datasets.map(d => (
@@ -168,7 +171,7 @@ export default function Dashboard() {
           <Link to={createPageUrl("ReportCenter")}>
             <Button variant="outline" size="sm" className="gap-1.5 text-xs">
               <FileText className="w-3.5 h-3.5" />
-              生成完整报告
+              {isEn ? "Generate Full Report" : "生成完整报告"}
             </Button>
           </Link>
         </div>
@@ -177,13 +180,13 @@ export default function Dashboard() {
       {metricsLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
-          <span className="text-sm text-slate-500">加载指标数据...</span>
+          <span className="text-sm text-slate-500">{isEn ? "Loading metrics..." : "加载指标数据..."}</span>
         </div>
       ) : (
         <>
           {/* KPI Cockpit */}
           <div>
-            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">核心 KPI</h2>
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">{isEn ? "Core KPIs" : "核心 KPI"}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {kpis.map((kpi, i) => (
                 <KPICard key={i} {...kpi} />
@@ -198,7 +201,7 @@ export default function Dashboard() {
                 <div>
                   <h2 className="text-sm font-semibold text-red-500/80 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-red-500" />
-                    主要风险
+                    {isEn ? "Top Risks" : "主要风险"}
                   </h2>
                   <div className="space-y-3">
                     {risks.map((r, i) => (
@@ -212,7 +215,7 @@ export default function Dashboard() {
                 <div>
                   <h2 className="text-sm font-semibold text-blue-500/80 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    主要机会
+                    {isEn ? "Top Opportunities" : "主要机会"}
                   </h2>
                   <div className="space-y-3">
                     {opportunities.map((o, i) => (
@@ -226,17 +229,17 @@ export default function Dashboard() {
 
           {/* Quick links */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5">
-            <h3 className="text-sm font-semibold text-slate-700 mb-3">快速跳转</h3>
+            <h3 className="text-sm font-semibold text-slate-700 mb-3">{isEn ? "Quick Links" : "快速跳转"}</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {[
-                { label: "激活漏斗", page: "Activation" },
-                { label: "集中度分析", page: "Concentration" },
-                { label: "结构健康", page: "MixHealth" },
-                { label: "效率象限", page: "Efficiency" },
-                { label: "交易质量", page: "Approval" },
-                { label: "分层治理", page: "OperatingSystem" },
-                { label: "行动计划", page: "ActionPlan" },
-                { label: "数据接入", page: "Input" },
+                { label: isEn ? "Activation Funnel" : "激活漏斗", page: "Activation" },
+                { label: isEn ? "Concentration" : "集中度分析", page: "Concentration" },
+                { label: isEn ? "Mix Health" : "结构健康", page: "MixHealth" },
+                { label: isEn ? "Efficiency Quadrant" : "效率象限", page: "Efficiency" },
+                { label: isEn ? "Trade Quality" : "交易质量", page: "Approval" },
+                { label: isEn ? "Tier Management" : "分层治理", page: "OperatingSystem" },
+                { label: isEn ? "Action Plan" : "行动计划", page: "ActionPlan" },
+                { label: isEn ? "Data Input" : "数据接入", page: "Input" },
               ].map((link) => (
                 <Link
                   key={link.page}
@@ -251,13 +254,22 @@ export default function Dashboard() {
 
           {/* Insights Panel */}
           <InsightsPanel
-            insights={[
+            insights={isEn ? [
+              "Dashboard summarizes 6 core health KPIs using color coding (green=healthy, yellow=watch, red=risk) for quick issue identification",
+              "Active Ratio shows what % of publishers are generating GMV; below 40% indicates many dormant channel resources",
+              "Top10 GMV Share measures top-heavy dependency; above 50% means over-reliance on a few key channels",
+              "GMV/Active Publisher reflects per-channel output efficiency, a key indicator of channel quality"
+            ] : [
               "Dashboard汇总了联盟计划的6大核心健康度指标，通过颜色编码（绿色=健康，黄色=关注，红色=风险）快速识别问题区域",
               "Active Ratio显示有多少比例的Publisher在活跃产生GMV，低于40%说明存在大量沉睡渠道资源",
               "Top10 GMV占比衡量头部依赖度，超过50%意味着业务过度依赖少数几个大渠道，抗风险能力弱",
               "GMV/Active Publisher反映单渠道产出效率，是衡量渠道质量的关键指标"
             ]}
-            problems={[
+            problems={isEn ? [
+              "Multiple red/yellow KPIs indicate structural issues in the affiliate program; prioritize visiting the relevant detail pages",
+              "Top Risks and Opportunities are auto-extracted from AI analysis; click to navigate to the specific chapter",
+              "Use the dataset dropdown to compare data across time periods and track improvement"
+            ] : [
               "如果看到多个红色或黄色指标，说明联盟计划存在结构性问题，需要优先查看对应的详细分析页面",
               "主要风险和主要机会模块自动提取AI分析结果，点击可跳转到具体章节查看详细建议",
               "使用数据集下拉菜单可以对比不同时期的数据，追踪改进效果"
