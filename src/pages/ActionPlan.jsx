@@ -347,6 +347,7 @@ Return a JSON array of action items.`,
               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">{ap.tableHeaders.priority}</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">{ap.tableHeaders.owner}</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">{ap.tableHeaders.dueDate}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">KPI Target</th>
             </tr>
             </thead>
             <tbody>
