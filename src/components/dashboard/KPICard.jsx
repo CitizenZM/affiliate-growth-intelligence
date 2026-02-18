@@ -30,6 +30,7 @@ const statusColors = {
   red: { bg: "bg-red-50", dot: "bg-red-500", text: "text-red-700", border: "border-red-200" },
 };
 
+
 export default function KPICard({ title, value, target, status = "green", trend, trendLabel, evidenceRows, unit = "" }) {
   const [showEvidence, setShowEvidence] = useState(false);
   const { t } = useLanguage();
