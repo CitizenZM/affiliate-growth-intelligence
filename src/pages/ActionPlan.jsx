@@ -291,7 +291,17 @@ Return a JSON array of action items.`,
                         </Badge>
                       </div>
                       {item.workstream && (
-                        <p className="text-[11px] text-slate-400 mb-2">{ap.workstreams[item.workstream] || item.workstream}</p>
+                        <p className="text-[11px] text-slate-400 mb-1.5">{ap.workstreams[item.workstream] || item.workstream}</p>
+                      )}
+                      {item.kpi_target && (
+                        <p className="text-[11px] text-blue-600 bg-blue-50 rounded px-1.5 py-0.5 mb-1.5 leading-snug">🎯 {item.kpi_target}</p>
+                      )}
+                      {item.notes && item.notes.includes('Tags:') && (
+                        <div className="flex flex-wrap gap-1 mb-1.5">
+                          {item.notes.split('Tags:')[1]?.trim().split(',').map(tag => tag.trim()).filter(Boolean).slice(0, 4).map(tag => (
+                            <span key={tag} className="text-[9px] bg-slate-100 text-slate-500 rounded-full px-1.5 py-0.5">{tag}</span>
+                          ))}
+                        </div>
                       )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-[11px] text-slate-400">
