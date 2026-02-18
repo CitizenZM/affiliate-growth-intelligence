@@ -6,6 +6,7 @@ import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Responsive
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/components/LanguageContext";
 
 const scatterData = [
   { name: "RetailMeNot", cpa: 12.3, aov: 85, gmv: 312000, type: "deal", roi: 6.9 },
@@ -61,6 +62,8 @@ const evidenceData = scatterData.map(d => ({
 
 export default function Efficiency() {
   const [selected, setSelected] = useState(null);
+  const { t } = useLanguage();
+  const ef = t('efficiency');
 
   const medianCPA = 12;
   const medianAOV = 80;
@@ -68,8 +71,8 @@ export default function Efficiency() {
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">效率象限</h1>
-        <p className="text-sm text-slate-500 mt-1">CPA vs AOV 四象限定位 Publisher 策略优先级</p>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{ef.title}</h1>
+        <p className="text-sm text-slate-500 mt-1">{ef.subtitle}</p>
       </div>
 
       <SectionLayout
@@ -80,7 +83,7 @@ export default function Efficiency() {
         {/* Scatter */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-slate-700">CPA vs AOV 散点图</h3>
+            <h3 className="text-sm font-semibold text-slate-700">{ef.chartTitle}</h3>
             <div className="flex gap-3">
               {Object.entries(typeColors).map(([type, color]) => (
                 <div key={type} className="flex items-center gap-1.5 text-xs text-slate-500">
@@ -132,26 +135,26 @@ export default function Efficiency() {
           {/* Quadrant labels */}
           <div className="grid grid-cols-2 gap-2 mt-3">
             <div className="bg-emerald-50 rounded-lg p-2.5 text-center">
-              <p className="text-[11px] font-semibold text-emerald-700">★ 高AOV 低CPA</p>
-              <p className="text-[10px] text-emerald-600">加码投入</p>
+              <p className="text-[11px] font-semibold text-emerald-700">{ef.quadrant.q1}</p>
+              <p className="text-[10px] text-emerald-600">{ef.quadrant.q1sub}</p>
             </div>
             <div className="bg-amber-50 rounded-lg p-2.5 text-center">
-              <p className="text-[11px] font-semibold text-amber-700">高AOV 高CPA</p>
-              <p className="text-[10px] text-amber-600">优化转化</p>
+              <p className="text-[11px] font-semibold text-amber-700">{ef.quadrant.q2}</p>
+              <p className="text-[10px] text-amber-600">{ef.quadrant.q2sub}</p>
             </div>
             <div className="bg-blue-50 rounded-lg p-2.5 text-center">
-              <p className="text-[11px] font-semibold text-blue-700">低AOV 低CPA</p>
-              <p className="text-[10px] text-blue-600">批量扩展</p>
+              <p className="text-[11px] font-semibold text-blue-700">{ef.quadrant.q3}</p>
+              <p className="text-[10px] text-blue-600">{ef.quadrant.q3sub}</p>
             </div>
             <div className="bg-red-50 rounded-lg p-2.5 text-center">
-              <p className="text-[11px] font-semibold text-red-700">低AOV 高CPA</p>
-              <p className="text-[10px] text-red-600">治理/淘汰</p>
+              <p className="text-[11px] font-semibold text-red-700">{ef.quadrant.q4}</p>
+              <p className="text-[10px] text-red-600">{ef.quadrant.q4sub}</p>
             </div>
           </div>
         </div>
 
         <EvidenceTable
-          title="Publisher 效率明细"
+          title={ef.tableTitle}
           columns={evidenceColumns}
           data={evidenceData}
           derivationNotes={derivationNotes}
@@ -180,22 +183,22 @@ export default function Efficiency() {
                 ))}
               </div>
               <div>
-                <p className="text-xs text-slate-500 mb-1.5">类型</p>
-                <Badge className="bg-blue-50 text-blue-700 border-blue-200">{selected.type}</Badge>
+              <p className="text-xs text-slate-500 mb-1.5">{ef.drawer.type}</p>
+              <Badge className="bg-blue-50 text-blue-700 border-blue-200">{selected.type}</Badge>
               </div>
               <div>
-                <p className="text-xs text-slate-500 mb-1.5">推荐动作</p>
-                <div className="bg-blue-50 rounded-lg p-3 text-sm text-blue-700">
-                  {selected.aov > medianAOV && selected.cpa < medianCPA
-                    ? "★ 核心优质 Publisher — 建议提升佣金率加码合作"
-                    : selected.aov > medianAOV
-                    ? "高价值但成本偏高 — 建议优化转化路径降低 CPA"
-                    : selected.cpa < medianCPA
-                    ? "效率型 Publisher — 适合批量扩展"
-                    : "需评估合作性价比 — 建议启动治理流程"}
-                </div>
+              <p className="text-xs text-slate-500 mb-1.5">{ef.drawer.recommended}</p>
+              <div className="bg-blue-50 rounded-lg p-3 text-sm text-blue-700">
+                {selected.aov > medianAOV && selected.cpa < medianCPA
+                  ? ef.drawer.star
+                  : selected.aov > medianAOV
+                  ? ef.drawer.highValue
+                  : selected.cpa < medianCPA
+                  ? ef.drawer.efficient
+                  : ef.drawer.review}
               </div>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-sm">加入行动计划</Button>
+              </div>
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-sm">{ef.drawer.addAction}</Button>
             </div>
           )}
         </SheetContent>
