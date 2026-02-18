@@ -127,18 +127,8 @@ export default function Timeline() {
       </div>
 
       <InsightsPanel
-        insights={[
-          "营销日历与行动计划的叠加视图帮助识别资源冲突和协同机会，Spring Sale和Black Friday前应提前2-3个月启动Content招募",
-          "品类营销节奏：时尚类Q1春季、Q4假日最强；科技类Black Friday、开学季；家居类春季装修、年末促销",
-          "建议在大促前30天完成Tier2培育和Deal佣金调整，确保渠道有充分时间备货和推广",
-          "里程碑节点(Q1 Review、H1 Performance Review)是策略校准的关键时机，需要对照KPI完成度决定资源再分配"
-        ]}
-        problems={[
-          "如果多个高优先级任务集中在同一时段，会导致资源争抢和执行质量下降，需要错峰安排",
-          "大促期间(如Black Friday前后)不建议进行重大系统变更或治理动作，避免影响业务连续性",
-          "Content类渠道通常需要2-3个月的内容制作周期，所以招募应该提前到Q1就启动",
-          "如果年度策略刷新(Q4)发现KPI严重偏离，说明前期规划有问题，需要在H1就进行中期Review纠偏"
-        ]}
+        insights={tl.insights}
+        problems={tl.problems}
       />
     </div>
   );

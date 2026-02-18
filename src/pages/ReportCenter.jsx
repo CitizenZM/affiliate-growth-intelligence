@@ -42,9 +42,9 @@ export default function ReportCenter() {
     setGenerating(true);
     try {
       await base44.functions.invoke('aiGenerateSections', { dataset_id: datasetId });
-      toast.success('报告生成完成');
+      toast.success(rc.toasts.generateSuccess);
     } catch (error) {
-      toast.error('生成失败: ' + error.message);
+      toast.error(rc.toasts.generateFail + ': ' + error.message);
     } finally {
       setGenerating(false);
     }
@@ -52,7 +52,7 @@ export default function ReportCenter() {
 
   const handleDownload = async (format) => {
     if (!datasetId) {
-      toast.error('请先选择数据集');
+      toast.error(rc.toasts.selectDataset);
       return;
     }
 
@@ -95,10 +95,10 @@ export default function ReportCenter() {
       window.URL.revokeObjectURL(url);
       a.remove();
       
-      toast.success('下载成功');
+      toast.success(rc.toasts.downloadSuccess);
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('下载失败: ' + error.message);
+      toast.error(rc.toasts.downloadFail + ': ' + error.message);
     } finally {
       setDownloading(null);
     }
@@ -106,7 +106,7 @@ export default function ReportCenter() {
 
   const handleBoardSummary = async () => {
     if (!datasetId) {
-      toast.error('请先选择数据集');
+      toast.error(rc.toasts.selectDataset);
       return;
     }
 
@@ -140,10 +140,10 @@ export default function ReportCenter() {
       window.URL.revokeObjectURL(url);
       a.remove();
       
-      toast.success('Board 摘要已下载');
+      toast.success(rc.toasts.boardSuccess);
     } catch (error) {
       console.error('Board summary error:', error);
-      toast.error('生成失败: ' + error.message);
+      toast.error(rc.toasts.generateFail + ': ' + error.message);
     } finally {
       setDownloading(null);
     }
@@ -250,7 +250,7 @@ export default function ReportCenter() {
                   {currentSection.content_md ? (
                     <div className="whitespace-pre-wrap">{currentSection.content_md}</div>
                   ) : (
-                    <p className="text-slate-400 text-center py-8">暂无内容</p>
+                    <p className="text-slate-400 text-center py-8">{rc.noContentText}</p>
                   )}
                 </div>
 
@@ -309,7 +309,7 @@ export default function ReportCenter() {
                 className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-200 opacity-50 cursor-not-allowed"
               >
                 <Download className="w-4 h-4 text-slate-400" />
-                <span className="text-sm text-slate-600 font-medium">Board 摘要</span>
+                <span className="text-sm text-slate-600 font-medium">{rc.boardSummaryLabel}</span>
               </button>
             </div>
           </div>
