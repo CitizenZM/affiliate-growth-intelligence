@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Database, ArrowRight, CheckCircle2, AlertCircle, Clock, Settings, FileText } from "lucide-react";
+import { Database, ArrowRight, CheckCircle2, AlertCircle, Settings, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLanguage } from "@/components/LanguageContext";
 
 const fieldMappings = [
   { source: "publisher_id", target: "publisher_id", status: "mapped" },
@@ -40,37 +40,39 @@ const statusIcon = {
 };
 
 export default function DataCenter() {
+  const { t } = useLanguage();
+  const dc = t('dataCenter');
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">数据中心</h1>
-        <p className="text-sm text-slate-500 mt-1">字段映射、分类规则编辑与复算日志</p>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{dc.title}</h1>
+        <p className="text-sm text-slate-500 mt-1">{dc.subtitle}</p>
       </div>
 
       <Tabs defaultValue="fields" className="w-full">
         <TabsList className="bg-slate-100 rounded-lg p-0.5">
-          <TabsTrigger value="fields" className="text-xs gap-1.5"><Database className="w-3.5 h-3.5" /> 字段映射</TabsTrigger>
-          <TabsTrigger value="types" className="text-xs gap-1.5"><Settings className="w-3.5 h-3.5" /> 分类映射</TabsTrigger>
-          <TabsTrigger value="logs" className="text-xs gap-1.5"><FileText className="w-3.5 h-3.5" /> 复算日志</TabsTrigger>
+          <TabsTrigger value="fields" className="text-xs gap-1.5"><Database className="w-3.5 h-3.5" /> {dc.tabs.fields}</TabsTrigger>
+          <TabsTrigger value="types" className="text-xs gap-1.5"><Settings className="w-3.5 h-3.5" /> {dc.tabs.types}</TabsTrigger>
+          <TabsTrigger value="logs" className="text-xs gap-1.5"><FileText className="w-3.5 h-3.5" /> {dc.tabs.logs}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fields" className="mt-4">
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <span className="text-sm font-semibold text-slate-700">字段映射编辑器</span>
+              <span className="text-sm font-semibold text-slate-700">{dc.fieldEditor}</span>
               <div className="flex gap-2 text-[11px]">
-                <Badge className="bg-emerald-50 text-emerald-700">已映射 {fieldMappings.filter(f => f.status === "mapped").length}</Badge>
-                <Badge className="bg-amber-50 text-amber-700">待确认 {fieldMappings.filter(f => f.status === "review").length}</Badge>
-                <Badge className="bg-red-50 text-red-700">未映射 {fieldMappings.filter(f => f.status === "unmapped").length}</Badge>
+                <Badge className="bg-emerald-50 text-emerald-700">{dc.mappedLabel} {fieldMappings.filter(f => f.status === "mapped").length}</Badge>
+                <Badge className="bg-amber-50 text-amber-700">{dc.reviewLabel} {fieldMappings.filter(f => f.status === "review").length}</Badge>
+                <Badge className="bg-red-50 text-red-700">{dc.unmappedLabel} {fieldMappings.filter(f => f.status === "unmapped").length}</Badge>
               </div>
             </div>
             <table className="w-full text-sm">
               <thead className="bg-slate-50/50">
                 <tr>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">源字段</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">{dc.sourceField}</th>
                   <th className="px-5 py-2.5 text-center text-xs font-semibold text-slate-500" />
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">目标字段</th>
-                  <th className="px-5 py-2.5 text-center text-xs font-semibold text-slate-500">状态</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">{dc.targetField}</th>
+                  <th className="px-5 py-2.5 text-center text-xs font-semibold text-slate-500">{dc.status}</th>
                 </tr>
               </thead>
               <tbody>
@@ -90,15 +92,15 @@ export default function DataCenter() {
         <TabsContent value="types" className="mt-4">
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <div className="px-5 py-3 border-b border-slate-100 bg-slate-50">
-              <span className="text-sm font-semibold text-slate-700">分类映射规则</span>
+              <span className="text-sm font-semibold text-slate-700">{dc.typeMappingRules}</span>
             </div>
             <table className="w-full text-sm">
               <thead className="bg-slate-50/50">
                 <tr>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">原始类型</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">{dc.originalType}</th>
                   <th className="px-5 py-2.5 text-center text-xs font-semibold text-slate-500" />
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">映射类型</th>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">规则</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">{dc.mappedType}</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">{dc.rule}</th>
                 </tr>
               </thead>
               <tbody>
@@ -120,17 +122,17 @@ export default function DataCenter() {
         <TabsContent value="logs" className="mt-4">
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <div className="px-5 py-3 border-b border-slate-100 bg-slate-50">
-              <span className="text-sm font-semibold text-slate-700">复算日志</span>
+              <span className="text-sm font-semibold text-slate-700">{dc.computeLogs}</span>
             </div>
             <table className="w-full text-sm">
               <thead className="bg-slate-50/50">
                 <tr>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">版本</th>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">时间</th>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">耗时</th>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">行数</th>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">状态</th>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">备注</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">{dc.version}</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">{dc.time}</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">{dc.duration}</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">{dc.rows}</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">{dc.status}</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500">{dc.notes}</th>
                 </tr>
               </thead>
               <tbody>
@@ -142,7 +144,7 @@ export default function DataCenter() {
                     <td className="px-5 py-2.5 text-xs text-slate-700">{log.rows.toLocaleString()}</td>
                     <td className="px-5 py-2.5">
                       <Badge className={`text-[10px] ${log.status === "success" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
-                        {log.status === "success" ? "成功" : "有警告"}
+                        {log.status === "success" ? dc.success : dc.warning}
                       </Badge>
                     </td>
                     <td className="px-5 py-2.5 text-xs text-slate-500">{log.notes}</td>
