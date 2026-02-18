@@ -37,36 +37,30 @@ const typeLabels = {
   'other': 'Other'
 };
 
-const evidenceColumns = [
-  { key: "type", label: "类型" },
-  { key: "count", label: "数量" },
-  { key: "gmv", label: "GMV" },
-  { key: "gmv_share", label: "GMV 占比" },
-  { key: "targetPct", label: "目标区间" },
-  { key: "status", label: "状态" },
-];
 
-const derivationNotes = [
-  {
-    title: "映射规则",
-    items: [
-      { label: "优先级", value: "tag > publisher_type > parent_publisher_type" },
-      { label: "默认", value: "无法识别归入 Other" },
-    ],
-  },
-  {
-    title: "计算公式",
-    items: [
-      { label: "GMV 占比", value: "type_revenue / sum(total_revenue)" },
-      { label: "目标区间", value: "基于行业 benchmark 设定" },
-    ],
-  },
-];
 
 export default function MixHealth() {
   const [selectedDataset, setSelectedDataset] = useState(null);
   const { t } = useLanguage();
   const mh = t('mixHealth');
+  const isEn = t('nav.overview') === 'Overview';
+
+  const derivationNotes = [
+    {
+      title: mh.derivation.mappingTitle,
+      items: [
+        { label: isEn ? "Priority" : "优先级", value: mh.derivation.priority },
+        { label: isEn ? "Default" : "默认", value: mh.derivation.defaultMapping },
+      ],
+    },
+    {
+      title: mh.derivation.formulaTitle,
+      items: [
+        { label: mh.cols.gmvShare, value: mh.derivation.gmvShare },
+        { label: mh.cols.targetPct, value: mh.derivation.targetInterval },
+      ],
+    },
+  ];
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
@@ -133,16 +127,20 @@ export default function MixHealth() {
           let conclusionStatus = 'good';
           
           if (dealShare > 35) {
-            conclusion = `Deal/Coupon 渠道 GMV 占比 ${dealShare.toFixed(0)}%，严重超出 35% 上限。`;
+            conclusion = isEn
+              ? `Deal/Coupon GMV share is ${dealShare.toFixed(0)}%, significantly exceeding the 35% ceiling.`
+              : `Deal/Coupon 渠道 GMV 占比 ${dealShare.toFixed(0)}%，严重超出 35% 上限。`;
             conclusionStatus = 'bad';
           }
           if (contentShare < 25) {
-            conclusion += ` Content 渠道仅 ${contentShare.toFixed(0)}%，远低于 25-35% 目标区间，结构失衡风险显著。`;
+            conclusion += isEn
+              ? ` Content share is only ${contentShare.toFixed(0)}%, well below the 25-35% target range — structural imbalance risk.`
+              : ` Content 渠道仅 ${contentShare.toFixed(0)}%，远低于 25-35% 目标区间，结构失衡风险显著。`;
             conclusionStatus = 'bad';
           }
           
           if (!conclusion) {
-            conclusion = '各渠道类型占比符合目标区间，结构健康。';
+            conclusion = isEn ? 'All channel types are within target ranges — structure is healthy.' : '各渠道类型占比符合目标区间，结构健康。';
             conclusionStatus = 'good';
           }
 
@@ -220,13 +218,22 @@ export default function MixHealth() {
       </DataLoader>
 
       <InsightsPanel
-        insights={[
+        insights={isEn ? [
+          "Content publishers typically have the highest AOV and user quality but higher acquisition costs — core channel for brand building",
+          "Deal/Coupon channels drive high order volume but low margins; over-reliance compresses overall profitability",
+          "Loyalty/Cashback channels have stable repeat purchase rates, suitable as a reliable base",
+          "Healthy channel structure: Content 25-35%, Deal ≤35%, Loyalty 10-20%, supplemented by other channels"
+        ] : [
           "Content类Publisher通常AOV最高、用户质量最好，但获客成本也较高，是品牌建设的核心渠道",
           "Deal/Coupon类能带来大量订单但利润率低，过度依赖会压缩整体利润空间",
           "Loyalty/Cashback类具有稳定的复购率，适合作为基础盘保障",
           "健康的渠道结构应该是：Content 25-35%、Deal ≤35%、Loyalty 10-20%、其他渠道补充"
         ]}
-        problems={[
+        problems={isEn ? [
+          "Deal share above 50% means the channel is over-promotionalized, which long-term damages brand value and user loyalty",
+          "Content share below 15% means a lack of high-quality content channels, making it hard to reach high-value users",
+          "If a publisher type's count far exceeds target but GMV share is low, channel quality is inconsistent and needs cleanup"
+        ] : [
           "Deal类超过50%说明渠道过度促销化，长期会损害品牌价值和用户忠诚度",
           "Content类低于15%意味着缺乏高质量内容渠道，难以触达高价值用户",
           "如果某类型Publisher数量远超目标但GMV占比低，说明该类型渠道质量参差不齐，需要清理"
