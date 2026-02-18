@@ -5,12 +5,13 @@ import { toast } from "sonner";
 import { useLanguage } from "@/components/LanguageContext";
 
 export default function DerivationPanel({ notes = [] }) {
+  const { t } = useLanguage();
   const handleCopy = (format) => {
     const text = format === "json"
       ? JSON.stringify(notes, null, 2)
       : notes.map(n => `## ${n.title}\n${n.items.map(i => `- **${i.label}**: ${i.value}`).join("\n")}`).join("\n\n");
     navigator.clipboard.writeText(text);
-    toast.success("已复制到剪贴板");
+    toast.success(t('shared.copied'));
   };
 
   if (!notes.length) return null;
@@ -20,7 +21,7 @@ export default function DerivationPanel({ notes = [] }) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-slate-400" />
-          <h3 className="text-sm font-semibold text-slate-700">推导备注</h3>
+          <h3 className="text-sm font-semibold text-slate-700">{t('shared.derivationNotes')}</h3>
         </div>
         <div className="flex gap-1">
           <Button variant="ghost" size="sm" className="h-6 text-[11px] text-slate-400" onClick={() => handleCopy("md")}>
