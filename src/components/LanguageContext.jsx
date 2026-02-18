@@ -419,6 +419,17 @@ export const translations = {
         tier_management: "Tier Management", governance: "Governance", other: "Other",
       },
       priority: { high: "High", medium: "Med", low: "Low" },
+      insights: [
+        "Action plans are the critical bridge from analysis to execution — each item should map to a specific KPI improvement target",
+        "Workstream classification helps identify resource allocation priorities; high-priority Content Expansion and Deal Optimization typically have the highest ROI",
+        "Kanban view is best for daily progress tracking; table view is better for overall planning and resource allocation",
+        "Action items should be SMART: Specific, Measurable, Achievable, Relevant, Time-bound",
+      ],
+      problems: [
+        "If the Doing column is chronically backlogged, it signals insufficient resources or poor prioritization — re-evaluate",
+        "Action items without owners or deadlines are easily forgotten — make these fields required",
+        "Action plans should be reviewed regularly — update status at least weekly to avoid becoming stale documents",
+      ],
     },
     timeline: {
       title: "Gantt Chart & Milestones", subtitle: "12-month action timeline with promotional calendar",
@@ -429,15 +440,34 @@ export const translations = {
         governanceWhitelist: "Governance Whitelist Launch", h1Review: "H1 Performance Review",
         contentCheck: "Content Share Target Check", annualRefresh: "Annual Strategy Refresh",
       },
+      insights: [
+        "The overlay of promo calendar and action plan helps identify resource conflicts and synergies — Content recruitment should start 2-3 months before Spring Sale and Black Friday",
+        "Category marketing rhythm: Fashion peaks in Q1 spring and Q4 holiday; Tech peaks on Black Friday and back-to-school; Home peaks in spring renovation and year-end promotions",
+        "Complete Tier2 incubation and Deal commission adjustments 30 days before major promos to give channels time to prepare",
+        "Milestone checkpoints (Q1 Review, H1 Performance Review) are key strategy calibration moments — use them to reassign resources based on KPI progress",
+      ],
+      problems: [
+        "If multiple high-priority tasks cluster in the same period, resource contention and execution quality drop — stagger the schedule",
+        "Avoid major system changes or governance actions during peak promo periods (e.g. around Black Friday) to protect business continuity",
+        "Content channels typically need a 2-3 month content production cycle, so recruitment should start in Q1",
+        "If the annual strategy refresh (Q4) reveals major KPI deviation, it means early planning was flawed — a mid-year review in H1 should have caught this",
+      ],
     },
     reportCenter: {
       title: "Report Center", subtitle: "Full report chapters 0-10, multi-format export",
       generateFull: "Generate Full Report", generating: "Generating...",
-      boardSummary: "Board Summary", chapterNav: "Chapter Index", exportFormats: "Export Formats",
+      boardSummary: "Board Summary", boardSummaryLabel: "Board Summary",
+      chapterNav: "Chapter Index", exportFormats: "Export Formats",
       noContent: "Click \"Generate Full Report\" to preview the report here",
       noContentSub: "Supports WYSIWYG editing, chart replacement, and evidence table embedding",
+      noContentText: "No content yet",
       conclusion: "Conclusion", keyFindings: "Key Findings",
       status: { ready: "Ready", partial: "Partial", missing: "Missing Data" },
+      toasts: {
+        selectDataset: "Please select a dataset first", generateSuccess: "Report generated successfully",
+        generateFail: "Generation failed", downloadSuccess: "Downloaded successfully",
+        downloadFail: "Download failed", boardSuccess: "Board summary downloaded",
+      },
       chapters: [
         { title: "Executive Summary", desc: "One-page CEO summary with core KPIs and risks/opportunities" },
         { title: "Activation & Funnel", desc: "Activation rate, Active Ratio, Core Driver analysis" },
