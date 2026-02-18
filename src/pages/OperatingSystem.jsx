@@ -6,44 +6,13 @@ import DataLoader from "../components/dashboard/DataLoader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download, Users, Star, TrendingUp, AlertTriangle } from "lucide-react";
+import { useLanguage } from "@/components/LanguageContext";
 
-const tierConfigs = [
-  {
-    name: "Tier 1 — Hero",
-    icon: Star,
-    color: "from-amber-500 to-orange-500",
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-    text: "text-amber-800",
-    strategy: "专属佣金率 + 联合内容 + 季度 QBR + 独家促销窗口",
-  },
-  {
-    name: "Tier 2 — Growth",
-    icon: TrendingUp,
-    color: "from-blue-500 to-indigo-500",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    text: "text-blue-800",
-    strategy: "阶梯佣金激励 + 内容模板支持 + 月度 Performance Review",
-  },
-  {
-    name: "Tier 3 — Long Tail",
-    icon: Users,
-    color: "from-slate-400 to-slate-500",
-    bg: "bg-slate-50",
-    border: "border-slate-200",
-    text: "text-slate-700",
-    strategy: "标准佣金 + 自动化邮件 Nurture + 季度批量激活活动",
-  },
-  {
-    name: "Tier 4 — Inactive",
-    icon: AlertTriangle,
-    color: "from-red-400 to-red-500",
-    bg: "bg-red-50",
-    border: "border-red-200",
-    text: "text-red-700",
-    strategy: "季度激活邮件 + 连续 6 月无效自动清理 + 治理白名单排除",
-  },
+const tierConfigsBase = [
+  { icon: Star, color: "from-amber-500 to-orange-500", bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-800" },
+  { icon: TrendingUp, color: "from-blue-500 to-indigo-500", bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-800" },
+  { icon: Users, color: "from-slate-400 to-slate-500", bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-700" },
+  { icon: AlertTriangle, color: "from-red-400 to-red-500", bg: "bg-red-50", border: "border-red-200", text: "text-red-700" },
 ];
 
 const derivationNotes = [
@@ -60,17 +29,19 @@ const derivationNotes = [
 
 export default function OperatingSystem() {
   const [selectedDataset, setSelectedDataset] = useState(null);
+  const { t } = useLanguage();
+  const os = t('operatingSystem');
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">分层治理</h1>
-          <p className="text-sm text-slate-500 mt-1">四层金字塔模型，差异化运营策略</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{os.title}</h1>
+          <p className="text-sm text-slate-500 mt-1">{os.subtitle}</p>
         </div>
         <div className="flex gap-2">
           <DatasetSelector value={selectedDataset} onChange={setSelectedDataset} />
           <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-            <Download className="w-3.5 h-3.5" /> 导出 Tier 名单
+            <Download className="w-3.5 h-3.5" /> {os.exportBtn}
           </Button>
         </div>
       </div>
@@ -110,30 +81,41 @@ export default function OperatingSystem() {
           const tier2GMV = tier2.reduce((s, p) => s + (p.total_revenue || 0), 0);
           const tier3GMV = tier3.reduce((s, p) => s + (p.total_revenue || 0), 0);
           
+          const tierLabels = [os.tiers.tier1, os.tiers.tier2, os.tiers.tier3, os.tiers.tier4];
+          const tierStrategies = [os.tiers.tier1Strategy, os.tiers.tier2Strategy, os.tiers.tier3Strategy, os.tiers.tier4Strategy];
+
           const tiers = [
             {
-              ...tierConfigs[0],
+              ...tierConfigsBase[0],
+              name: tierLabels[0],
+              strategy: tierStrategies[0],
               count: tier1.length,
               gmv: `$${(tier1GMV / 1000).toFixed(0)}K`,
               gmvPct: `${((tier1GMV / totalGMV) * 100).toFixed(0)}%`,
               publishers: tier1.slice(0, 5).map(p => p.publisher_name || p.publisher_id).concat(tier1.length > 5 ? [`+${tier1.length - 5} more`] : []),
             },
             {
-              ...tierConfigs[1],
+              ...tierConfigsBase[1],
+              name: tierLabels[1],
+              strategy: tierStrategies[1],
               count: tier2.length,
               gmv: `$${(tier2GMV / 1000).toFixed(0)}K`,
               gmvPct: `${((tier2GMV / totalGMV) * 100).toFixed(0)}%`,
               publishers: tier2.slice(0, 4).map(p => p.publisher_name || p.publisher_id).concat(tier2.length > 4 ? [`+${tier2.length - 4} more`] : []),
             },
             {
-              ...tierConfigs[2],
+              ...tierConfigsBase[2],
+              name: tierLabels[2],
+              strategy: tierStrategies[2],
               count: tier3.length,
               gmv: `$${(tier3GMV / 1000).toFixed(0)}K`,
               gmvPct: `${((tier3GMV / totalGMV) * 100).toFixed(0)}%`,
               publishers: tier3.slice(0, 3).map(p => p.publisher_name || p.publisher_id).concat(tier3.length > 3 ? [`+${tier3.length - 3} more`] : []),
             },
             {
-              ...tierConfigs[3],
+              ...tierConfigsBase[3],
+              name: tierLabels[3],
+              strategy: tierStrategies[3],
               count: inactiveCount,
               gmv: "$0",
               gmvPct: "0%",
@@ -170,7 +152,7 @@ export default function OperatingSystem() {
                           
                           <div className={`${tier.bg} rounded-lg p-3 mb-2`}>
                             <p className="text-xs font-medium text-slate-600">
-                              <span className={`${tier.text} font-semibold`}>策略: </span>
+                              <span className={`${tier.text} font-semibold`}>{os.strategy}: </span>
                               {tier.strategy}
                             </p>
                           </div>
