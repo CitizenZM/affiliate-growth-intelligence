@@ -6,13 +6,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useLanguage } from "@/components/LanguageContext";
 
-export default function EvidenceTable({ title = "证据表", columns = [], data = [], derivationNotes }) {
+export default function EvidenceTable({ title = "Evidence", columns = [], data = [], derivationNotes }) {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useLanguage();
 
   const handleCopyNotes = () => {
     if (derivationNotes) {
       navigator.clipboard.writeText(typeof derivationNotes === "string" ? derivationNotes : JSON.stringify(derivationNotes, null, 2));
-      toast.success("推导备注已复制");
+      toast.success(t('shared.copied'));
     }
   };
 
@@ -36,15 +37,15 @@ export default function EvidenceTable({ title = "证据表", columns = [], data 
         >
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           {title}
-          <span className="text-xs text-slate-400 font-normal">({data.length} 条)</span>
+          <span className="text-xs text-slate-400 font-normal">({data.length} {t('shared.items')})</span>
         </button>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" className="h-7 text-xs text-slate-400" onClick={handleExport}>
-            <Download className="w-3 h-3 mr-1" /> 导出
+            <Download className="w-3 h-3 mr-1" /> {t('common.export')}
           </Button>
           {derivationNotes && (
             <Button variant="ghost" size="sm" className="h-7 text-xs text-slate-400" onClick={handleCopyNotes}>
-              <Copy className="w-3 h-3 mr-1" /> 推导备注
+              <Copy className="w-3 h-3 mr-1" /> {t('shared.derivationNotes')}
             </Button>
           )}
         </div>
@@ -82,7 +83,7 @@ export default function EvidenceTable({ title = "证据表", columns = [], data 
               </Table>
               {data.length > 20 && (
                 <div className="px-4 py-2 text-xs text-slate-400 border-t bg-slate-50">
-                  显示前 20 条，共 {data.length} 条
+                  {t('shared.showingFirst')} 20 {t('shared.of')} {data.length}
                 </div>
               )}
             </div>
