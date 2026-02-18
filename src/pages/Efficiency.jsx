@@ -23,35 +23,7 @@ const scatterData = [
 
 const typeColors = { deal: "#EF4444", content: "#3B82F6", loyalty: "#8B5CF6", tech: "#06B6D4" };
 
-const derivationNotes = [
-  {
-    title: "指标定义",
-    items: [
-      { label: "CPA", value: "total_commission / orders" },
-      { label: "AOV", value: "total_revenue / orders" },
-      { label: "ROI", value: "total_revenue / total_commission" },
-      { label: "点大小", value: "按 GMV 缩放" },
-    ],
-  },
-  {
-    title: "象限策略",
-    items: [
-      { label: "高AOV低CPA", value: "★ 最优 — 加码投入" },
-      { label: "高AOV高CPA", value: "优化转化路径" },
-      { label: "低AOV低CPA", value: "批量扩展" },
-      { label: "低AOV高CPA", value: "治理或淘汰" },
-    ],
-  },
-];
 
-const evidenceColumns = [
-  { key: "name", label: "Publisher" },
-  { key: "type", label: "类型" },
-  { key: "cpa", label: "CPA" },
-  { key: "aov", label: "AOV" },
-  { key: "roi", label: "ROI" },
-  { key: "gmv", label: "GMV" },
-];
 const evidenceData = scatterData.map(d => ({
   ...d,
   cpa: `$${d.cpa}`,
@@ -64,6 +36,37 @@ export default function Efficiency() {
   const [selected, setSelected] = useState(null);
   const { t } = useLanguage();
   const ef = t('efficiency');
+  const isEn = t('nav.overview') === 'Overview';
+
+  const derivationNotes = [
+    {
+      title: ef.derivation.defsTitle,
+      items: [
+        { label: "CPA", value: ef.derivation.cpa },
+        { label: "AOV", value: ef.derivation.aov },
+        { label: "ROI", value: ef.derivation.roi },
+        { label: isEn ? "Dot Size" : "点大小", value: ef.derivation.dotSize },
+      ],
+    },
+    {
+      title: ef.derivation.stratTitle,
+      items: [
+        { label: isEn ? "High AOV Low CPA" : "高AOV低CPA", value: ef.derivation.highAovLowCpa },
+        { label: isEn ? "High AOV High CPA" : "高AOV高CPA", value: ef.derivation.highAovHighCpa },
+        { label: isEn ? "Low AOV Low CPA" : "低AOV低CPA", value: ef.derivation.lowAovLowCpa },
+        { label: isEn ? "Low AOV High CPA" : "低AOV高CPA", value: ef.derivation.lowAovHighCpa },
+      ],
+    },
+  ];
+
+  const evidenceColumns = [
+    { key: "name", label: ef.cols.name },
+    { key: "type", label: ef.cols.type },
+    { key: "cpa", label: ef.cols.cpa },
+    { key: "aov", label: ef.cols.aov },
+    { key: "roi", label: ef.cols.roi },
+    { key: "gmv", label: ef.cols.gmv },
+  ];
 
   const medianCPA = 12;
   const medianAOV = 80;
@@ -76,7 +79,9 @@ export default function Efficiency() {
       </div>
 
       <SectionLayout
-        conclusion="Content 类 Publisher AOV 显著高于平均（$110 vs $80），但 CPA 也偏高。Loyalty 类在低 CPA 象限表现优异，可批量扩展。"
+        conclusion={isEn
+        ? "Content publishers show AOV significantly above average ($110 vs $80), but CPA is also elevated. Loyalty publishers excel in the low-CPA quadrant and are suitable for bulk scaling."
+        : "Content 类 Publisher AOV 显著高于平均（$110 vs $80），但 CPA 也偏高。Loyalty 类在低 CPA 象限表现优异，可批量扩展。"}
         conclusionStatus="neutral"
         derivationNotes={derivationNotes}
       >
@@ -205,13 +210,22 @@ export default function Efficiency() {
       </Sheet>
 
       <InsightsPanel
-        insights={[
+        insights={isEn ? [
+          "The efficiency quadrant classifies publishers into 4 types by CPA and AOV: Star (high AOV low CPA), Potential (high AOV high CPA), Scale (low AOV low CPA), Problem (low AOV high CPA)",
+          "Dot size represents GMV — making it easy to see which publishers are both efficient and high-volume",
+          "ROI is the core metric for overall publisher value assessment; healthy value should be ≥5x",
+          "Different publisher types have different profiles: Content typically has high AOV but also high CPA; Deal has low CPA but also low AOV"
+        ] : [
           "效率象限通过CPA和AOV两个维度，将Publisher分为4类：星级（高AOV低CPA）、潜力（高AOV高CPA）、规模（低AOV低CPA）、问题（低AOV高CPA）",
           "散点大小代表GMV，可以直观看出哪些Publisher既效率高又体量大",
           "ROI（投入产出比）是综合评估Publisher价值的核心指标，通常健康值应≥5x",
           "不同类型Publisher有不同特征：Content类通常高AOV但CPA也高，Deal类CPA低但AOV也低"
         ]}
-        problems={[
+        problems={isEn ? [
+          "If a publisher is in the bottom-right quadrant (low AOV high CPA) with significant GMV, it's a top-priority governance target",
+          "High AOV high CPA publishers don't necessarily need to be removed — optimize landing pages and commission structure to lower CPA",
+          "When scaling low AOV low CPA publishers in bulk, watch for diminishing marginal returns and avoid blindly chasing volume"
+        ] : [
           "如果一个Publisher处于右下象限（低AOV高CPA）且GMV占比大，属于高优先级治理对象",
           "高AOV高CPA的Publisher不一定要淘汰，可以通过优化落地页、佣金结构来降低CPA",
           "批量扩展低AOV低CPA的Publisher时，要注意边际效应递减，避免盲目追求数量"
