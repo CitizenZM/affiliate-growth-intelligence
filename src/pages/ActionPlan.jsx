@@ -53,10 +53,12 @@ export default function ActionPlan() {
     refetchInterval: 3000,
   });
 
-  const { data: items = [], isLoading } = useQuery({
+  const { data: rawItems = [], isLoading } = useQuery({
     queryKey: ["actionItems"],
     queryFn: () => base44.entities.ActionItem.list("-created_date", 100),
   });
+
+  const items = useTranslatedItems(rawItems, ["title", "notes"]);
 
   // Auto-select latest completed dataset
   useEffect(() => {
