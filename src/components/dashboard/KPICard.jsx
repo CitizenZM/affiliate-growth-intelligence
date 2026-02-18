@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/components/LanguageContext";
 
 function StatusLabel({ status }) {
-  const { t } = useLanguage();
-  const isEn = t('nav.overview') === 'Overview';
+  const { language } = useLanguage();
+  const isEn = language === 'en';
   const labels = {
     green: isEn ? "Healthy" : "健康",
     yellow: isEn ? "Watch" : "关注",
