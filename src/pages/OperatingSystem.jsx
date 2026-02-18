@@ -123,7 +123,10 @@ export default function OperatingSystem() {
             },
           ];
           
-          const conclusion = section?.conclusion || `当前 ${tier1.length} 个 Hero Publisher 贡献 ${((tier1GMV / totalGMV) * 100).toFixed(0)}% GMV，${tier2.length} 个 Growth 贡献 ${((tier2GMV / totalGMV) * 100).toFixed(0)}%。建议从 Long Tail 中加速孵化进入 Growth 层。`;
+          const isEn = t('nav.overview') === 'Overview';
+          const conclusion = section?.conclusion || (isEn
+            ? `Currently ${tier1.length} Hero Publishers contribute ${((tier1GMV / totalGMV) * 100).toFixed(0)}% GMV, ${tier2.length} Growth publishers contribute ${((tier2GMV / totalGMV) * 100).toFixed(0)}%. Recommend accelerating Long Tail incubation into the Growth tier.`
+            : `当前 ${tier1.length} 个 Hero Publisher 贡献 ${((tier1GMV / totalGMV) * 100).toFixed(0)}% GMV，${tier2.length} 个 Growth 贡献 ${((tier2GMV / totalGMV) * 100).toFixed(0)}%。建议从 Long Tail 中加速孵化进入 Growth 层。`);
           
           return (
             <>
@@ -182,14 +185,24 @@ export default function OperatingSystem() {
               </SectionLayout>
 
               <InsightsPanel
-                insights={[
+                insights={isEn ? [
+                  "The four-tier pyramid model is the standard for mature affiliate programs, maximizing ROI through differentiated strategies",
+                  "Tier 1 Hero typically has 10-15 publishers but contributes 50%+ GMV, requiring the highest level of resource investment and relationship management",
+                  "Tier 2 Growth is the future Hero pipeline — tiered incentives and nurturing can accelerate promotion to Tier 1",
+                  "Tier 3 Long Tail has low individual output but large volume; automated operations enable scalable management",
+                  "Tier 4 Inactive should be periodically cleaned up to avoid consuming system resources and lowering operational efficiency"
+                ] : [
                   "四层金字塔模型是成熟联盟计划的标配，通过差异化运营策略最大化ROI",
                   "Tier 1 Hero通常占10-15个Publisher但贡献50%+ GMV，需要最高级别的资源投入和关系维护",
                   "Tier 2 Growth是未来的Hero储备，通过阶梯式激励和培育可快速提升至Tier 1",
                   "Tier 3 Long Tail虽然单体产出低，但总量庞大，通过自动化运营可实现规模化",
                   "Tier 4 Inactive需要定期清理，避免占用系统资源和降低运营效率"
                 ]}
-                problems={[
+                problems={isEn ? [
+                  "If Tier 1 accounts for over 70% of GMV, it indicates over-reliance on top publishers — accelerate Tier 2 development",
+                  "If Tier 4 exceeds 60%, activation rate is too low — optimize recruitment quality or launch an activation campaign",
+                  "The promotion path from Tier 3 to Tier 2 must be clear, with defined KPIs and incentive mechanisms"
+                ] : [
                   "如果Tier 1占比超过70%，说明过度依赖头部，抗风险能力弱，需要加速培育Tier 2",
                   "Tier 4占比超过60%说明激活率低，需要优化招商质量或启动激活campaign",
                   "从Tier 3到Tier 2的晋升通道应该是明确的，需要设定清晰的KPI和激励机制"
