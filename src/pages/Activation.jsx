@@ -12,13 +12,7 @@ const funnelData = [
   { name: "Core Drivers", value: 45, color: "#2563EB" },
 ];
 
-const evidenceColumns = [
-  { key: "name", label: "Publisher" },
-  { key: "type", label: "类型" },
-  { key: "gmv", label: "GMV" },
-  { key: "cpa", label: "CPA" },
-  { key: "status", label: "状态" },
-];
+
 const evidenceData = [
   { name: "RetailMeNot", type: "Deal/Coupon", gmv: "$85,000", cpa: "$12.30", status: "Active" },
   { name: "Wirecutter", type: "Content", gmv: "$62,000", cpa: "$18.50", status: "Active" },
@@ -27,29 +21,32 @@ const evidenceData = [
   { name: "Honey", type: "Tech/Sub", gmv: "$28,500", cpa: "$6.40", status: "Active" },
 ];
 
-const derivationNotes = [
-  {
-    title: "口径定义",
-    items: [
-      { label: "Active", value: "total_revenue > 0" },
-      { label: "去重", value: "PublisherID 优先，缺失时用 publisher_name" },
-      { label: "Core Driver", value: "Top contributors reaching 80% cumulative GMV" },
-    ],
-  },
-  {
-    title: "计算步骤",
-    items: [
-      { label: "Step 1", value: "筛选 total_revenue > 0 得到 Active 集合" },
-      { label: "Step 2", value: "按 total_revenue desc 排序" },
-      { label: "Step 3", value: "累计至 80% 确定 Core Drivers" },
-    ],
-  },
-];
+
 
 export default function Activation() {
   const [datasetId, setDatasetId] = useState(null);
   const { t } = useLanguage();
   const ac = t('activation');
+  const isEn = t('nav.overview') === 'Overview';
+
+  const derivationNotes = [
+    {
+      title: ac.derivation.defTitle,
+      items: [
+        { label: "Active", value: ac.derivation.active },
+        { label: isEn ? "Dedup" : "去重", value: ac.derivation.dedup },
+        { label: "Core Driver", value: ac.derivation.coreDriver },
+      ],
+    },
+    {
+      title: ac.derivation.stepsTitle,
+      items: [
+        { label: "Step 1", value: ac.derivation.step1 },
+        { label: "Step 2", value: ac.derivation.step2 },
+        { label: "Step 3", value: ac.derivation.step3 },
+      ],
+    },
+  ];
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
@@ -76,7 +73,9 @@ export default function Activation() {
 
           return (
             <SectionLayout
-              conclusion={section?.conclusion || `当前激活率 ${(activeRatio * 100).toFixed(1)}%，${activeRatio < 0.4 ? '低于' : '达到'} 40% 目标线。`}
+              conclusion={section?.conclusion || (isEn
+                ? `Current activation rate ${(activeRatio * 100).toFixed(1)}%, ${activeRatio < 0.4 ? 'below' : 'meeting'} the 40% target.`
+                : `当前激活率 ${(activeRatio * 100).toFixed(1)}%，${activeRatio < 0.4 ? '低于' : '达到'} 40% 目标线。`)}
               conclusionStatus={section?.conclusion_status || (activeRatio < 0.4 ? 'warning' : 'neutral')}
               derivationNotes={section?.derivation_notes || derivationNotes}
             >
@@ -116,7 +115,13 @@ export default function Activation() {
               {/* Evidence table */}
               <EvidenceTable
                 title={ac.tableTitle}
-                columns={evidenceColumns}
+                columns={[
+                  { key: "name", label: ac.cols.name },
+                  { key: "type", label: ac.cols.type },
+                  { key: "gmv", label: ac.cols.gmv },
+                  { key: "cpa", label: ac.cols.cpa },
+                  { key: "status", label: ac.cols.status },
+                ]}
                 data={evidenceData}
                 derivationNotes={section?.derivation_notes || derivationNotes}
               />
