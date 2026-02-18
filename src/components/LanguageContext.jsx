@@ -245,6 +245,7 @@ export const translations = {
       typeMappingRules: "分类映射规则", originalType: "原始类型", mappedType: "映射类型", rule: "规则",
       computeLogs: "复算日志", version: "版本", time: "时间", duration: "耗时",
       rows: "行数", notes: "备注", success: "成功", warning: "有警告",
+      logNotes: { log1: "完整计算 0-10 章", log2: "缺 Daily GMV", log3: "3 条 publisher_type 未映射" },
     },
   },
   en: {
@@ -491,6 +492,7 @@ export const translations = {
       typeMappingRules: "Type Mapping Rules", originalType: "Original Type", mappedType: "Mapped Type", rule: "Rule",
       computeLogs: "Compute Logs", version: "Version", time: "Time", duration: "Duration",
       rows: "Rows", notes: "Notes", success: "Success", warning: "Warning",
+      logNotes: { log1: "Full computation chapters 0-10", log2: "Missing Daily GMV", log3: "3 publisher_type records unmapped" },
     },
   },
 };
