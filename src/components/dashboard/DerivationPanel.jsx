@@ -2,6 +2,7 @@ import React from "react";
 import { Copy, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useLanguage } from "@/components/LanguageContext";
 
 export default function DerivationPanel({ notes = [] }) {
   const handleCopy = (format) => {

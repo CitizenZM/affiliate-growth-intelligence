@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useLanguage } from "@/components/LanguageContext";
 
 export default function EvidenceTable({ title = "证据表", columns = [], data = [], derivationNotes }) {
   const [expanded, setExpanded] = useState(false);
