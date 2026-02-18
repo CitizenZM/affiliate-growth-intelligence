@@ -15,14 +15,14 @@ const tierConfigsBase = [
   { icon: AlertTriangle, color: "from-red-400 to-red-500", bg: "bg-red-50", border: "border-red-200", text: "text-red-700" },
 ];
 
-const derivationNotes = [
+const getDerivationNotes = (os) => [
   {
-    title: "分层规则",
+    title: os.derivation.title,
     items: [
-      { label: "Tier 1", value: "Top contributors 达 50% GMV" },
-      { label: "Tier 2", value: "50%-80% GMV 区间" },
-      { label: "Tier 3", value: "active but < 80% 区间" },
-      { label: "Tier 4", value: "total_revenue = 0" },
+      { label: "Tier 1", value: os.derivation.tier1 },
+      { label: "Tier 2", value: os.derivation.tier2 },
+      { label: "Tier 3", value: os.derivation.tier3 },
+      { label: "Tier 4", value: os.derivation.tier4 },
     ],
   },
 ];
@@ -133,7 +133,7 @@ export default function OperatingSystem() {
               <SectionLayout
                 conclusion={conclusion}
                 conclusionStatus={section?.conclusion_status || "neutral"}
-                derivationNotes={derivationNotes}
+                derivationNotes={getDerivationNotes(os)}
               >
                 {/* Pyramid */}
                 <div className="space-y-3">
