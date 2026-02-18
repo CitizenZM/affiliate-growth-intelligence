@@ -49,7 +49,7 @@ export default function KPICard({ title, value, target, status = "green", trend,
 
       <div className="flex items-end gap-2 mb-1">
         <span className="text-2xl font-bold text-slate-900 tracking-tight tabular-nums">{value}{unit}</span>
-        {target && <span className="text-xs text-slate-400 mb-1">/ 目标 {target}{unit}</span>}
+        {target && <span className="text-xs text-slate-400 mb-1">/ {isEn ? "target" : "目标"} {target}{unit}</span>}
       </div>
 
       {trend !== undefined && (
