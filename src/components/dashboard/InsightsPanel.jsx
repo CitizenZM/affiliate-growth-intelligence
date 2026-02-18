@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/LanguageContext";
 
 export default function InsightsPanel({ insights = [], problems = [] }) {
   const [expanded, setExpanded] = useState(true);
+  const { t } = useLanguage();
 
   if (insights.length === 0 && problems.length === 0) {
     return null;
@@ -20,7 +21,7 @@ export default function InsightsPanel({ insights = [], problems = [] }) {
       >
         <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
           <Lightbulb className="w-5 h-5 text-amber-500" />
-          阅读指南
+          {t('shared.readingGuide')}
         </h2>
         <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
           {expanded ? (
@@ -46,9 +47,9 @@ export default function InsightsPanel({ insights = [], problems = [] }) {
                 <Card className="p-5 bg-gradient-to-br from-blue-50 to-white border-blue-200">
                   <div className="flex items-center gap-2 mb-4">
                     <Lightbulb className="w-4 h-4 text-blue-600" />
-                    <h3 className="font-semibold text-blue-900">数据洞察</h3>
+                    <h3 className="font-semibold text-blue-900">{t('shared.dataInsights')}</h3>
                     <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-200">
-                      关键发现
+                      {t('shared.keyFindings')}
                     </Badge>
                   </div>
                   <div className="space-y-3">
@@ -67,9 +68,9 @@ export default function InsightsPanel({ insights = [], problems = [] }) {
                 <Card className="p-5 bg-gradient-to-br from-amber-50 to-white border-amber-200">
                   <div className="flex items-center gap-2 mb-4">
                     <AlertCircle className="w-4 h-4 text-amber-600" />
-                    <h3 className="font-semibold text-amber-900">问题解读</h3>
+                    <h3 className="font-semibold text-amber-900">{t('shared.issueInterpretation')}</h3>
                     <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700 border-amber-200">
-                      需要关注
+                      {t('shared.needsAttention')}
                     </Badge>
                   </div>
                   <div className="space-y-3">
