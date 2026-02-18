@@ -8,30 +8,34 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/components/LanguageContext";
 
-const derivationNotes = [
-  {
-    title: "口径定义",
-    items: [
-      { label: "Approved", value: "approved_revenue 字段" },
-      { label: "Pending", value: "pending_revenue 字段" },
-      { label: "Declined", value: "declined_revenue 字段" },
-      { label: "Approval Rate", value: "approved_revenue / total_revenue" },
-    ],
-  },
-  {
-    title: "阈值",
-    items: [
-      { label: "健康", value: "Approval Rate ≥ 85%" },
-      { label: "关注", value: "70% ≤ Rate < 85%" },
-      { label: "风险", value: "Rate < 70%" },
-    ],
-  },
-];
+
 
 export default function Approval() {
   const [selectedDataset, setSelectedDataset] = useState(null);
   const { t } = useLanguage();
   const ap = t('approval');
+  const isEn = t('nav.overview') === 'Overview';
+
+  const derivationNotes = [
+    {
+      title: ap.derivation.defsTitle,
+      items: [
+        { label: "Approved", value: ap.derivation.approved },
+        { label: "Pending", value: ap.derivation.pending },
+        { label: "Declined", value: ap.derivation.declined },
+        { label: "Approval Rate", value: ap.derivation.approvalRate },
+      ],
+    },
+    {
+      title: ap.derivation.thresholdTitle,
+      items: [
+        { label: isEn ? "Healthy" : "健康", value: ap.derivation.healthy },
+        { label: isEn ? "Watch" : "关注", value: ap.derivation.watch },
+        { label: isEn ? "Risk" : "风险", value: ap.derivation.risk },
+      ],
+    },
+  ];
+
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -93,7 +97,9 @@ export default function Approval() {
           }));
 
           const conclusionStatus = approvalRate >= 0.85 ? "good" : approvalRate >= 0.7 ? "warning" : "bad";
-          const conclusion = section?.conclusion || `整体 Approval Rate ${(approvalRate * 100).toFixed(0)}%，${approvalRate < 0.85 ? '低于 85% 健康线' : '达标'}。Declined 金额 $${(declinedGMV / 1000).toFixed(0)}K。`;
+          const conclusion = section?.conclusion || (isEn
+            ? `Overall Approval Rate ${(approvalRate * 100).toFixed(0)}%, ${approvalRate < 0.85 ? 'below 85% healthy threshold' : 'on target'}. Declined amount $${(declinedGMV / 1000).toFixed(0)}K.`
+            : `整体 Approval Rate ${(approvalRate * 100).toFixed(0)}%，${approvalRate < 0.85 ? '低于 85% 健康线' : '达标'}。Declined 金额 $${(declinedGMV / 1000).toFixed(0)}K。`);
 
           return (
             <>
@@ -165,13 +171,22 @@ export default function Approval() {
               </SectionLayout>
 
               <InsightsPanel
-                insights={[
+                insights={isEn ? [
+                  "Approval Rate is the core metric for transaction quality, directly impacting actual revenue and publisher confidence",
+                  "A healthy affiliate program should have Approval Rate ≥ 85%; below 70% indicates serious fraud or quality issues",
+                  "Pending status typically lasts 7-30 days; an excessive share (>20%) impacts cash flow forecasting",
+                  "Main reasons for Declined: order cancellation/returns, suspected fraud, terms violations, tracking errors"
+                ] : [
                   "Approval Rate是衡量交易质量的核心指标，直接影响实际收入和Publisher信心",
                   "健康的联盟计划Approval Rate应≥85%，低于70%说明存在严重的欺诈或质量问题",
                   "Pending状态通常持续7-30天，占比过高（>20%）会影响现金流预测",
                   "Declined主要原因包括：订单取消/退货、疑似欺诈、违反条款、技术跟踪错误"
                 ]}
-                problems={[
+                problems={isEn ? [
+                  "If a single publisher's Decline Rate exceeds 50%, immediately suspend the partnership and launch an investigation",
+                  "Declined concentrated in a few publishers indicates channel quality issues; widespread distribution suggests a system or policy problem",
+                  "Persistently low Approval Rate causes quality publishers to leave, creating a vicious cycle"
+                ] : [
                   "如果单个Publisher的Decline Rate超过50%，需立即暂停合作并启动调查",
                   "Declined集中在少数Publisher说明是渠道质量问题；如果广泛分布则可能是系统或政策问题",
                   "持续的低Approval Rate会导致优质Publisher流失，形成恶性循环"
