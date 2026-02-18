@@ -20,10 +20,7 @@ export default function KPICard({ title, value, target, status = "green", trend,
     >
       <div className="flex items-start justify-between mb-3">
         <p className="text-[13px] font-medium text-slate-500 tracking-tight">{title}</p>
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${colors.bg} ${colors.text} ${colors.border} border`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
-          {status === "green" ? "健康" : status === "yellow" ? "关注" : "风险"}
-        </span>
+        <StatusLabel status={status} />
       </div>
 
       <div className="flex items-end gap-2 mb-1">
