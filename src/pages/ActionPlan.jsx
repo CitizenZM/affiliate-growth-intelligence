@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, LayoutGrid, Table2, GripVertical, Calendar, User, Sparkles } from "lucide-react";
+import { Plus, LayoutGrid, Table2, Calendar, User, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { motion } from "framer-motion";
+import { useLanguage } from "@/components/LanguageContext";
 
 const statusConfig = {
   todo: { label: "To Do", bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-300" },
@@ -19,15 +20,7 @@ const statusConfig = {
   done: { label: "Done", bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-300" },
 };
 
-const workstreamLabels = {
-  content_expansion: "内容扩张",
-  deal_optimization: "Deal 优化",
-  social_video: "社交视频",
-  landing_page: "落地页",
-  tier_management: "Tier 管理",
-  governance: "治理",
-  other: "其他",
-};
+const workstreamLabels = {}; // will be replaced dynamically from translations
 
 const priorityColors = {
   high: "bg-red-100 text-red-700",
@@ -36,6 +29,8 @@ const priorityColors = {
 };
 
 export default function ActionPlan() {
+  const { t } = useLanguage();
+  const ap = t('actionPlan');
   const [view, setView] = useState("kanban");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newItem, setNewItem] = useState({ title: "", workstream: "other", priority: "medium", owner: "", due_date: "", notes: "" });
@@ -136,8 +131,8 @@ export default function ActionPlan() {
     <div className="max-w-[1400px] mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">行动计划</h1>
-          <p className="text-sm text-slate-500 mt-1">从分析到执行的行动闭环管理</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{ap.title}</h1>
+          <p className="text-sm text-slate-500 mt-1">{ap.subtitle}</p>
         </div>
         <div className="flex gap-2">
           <DatasetSelector value={selectedDataset} onChange={setSelectedDataset} />
@@ -149,69 +144,69 @@ export default function ActionPlan() {
             disabled={!selectedDataset || generatingActions || sections.length === 0}
           >
             <Sparkles className="w-3.5 h-3.5" /> 
-            {generatingActions ? "生成中..." : "AI 生成行动"}
+            {generatingActions ? ap.generating : ap.generateAI}
           </Button>
           <div className="flex bg-slate-100 rounded-lg p-0.5">
             <button onClick={() => setView("kanban")} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "kanban" ? "bg-white shadow-sm text-slate-800" : "text-slate-500"}`}>
-              <LayoutGrid className="w-3.5 h-3.5 inline mr-1" /> 看板
+              <LayoutGrid className="w-3.5 h-3.5 inline mr-1" /> {ap.kanban}
             </button>
             <button onClick={() => setView("table")} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "table" ? "bg-white shadow-sm text-slate-800" : "text-slate-500"}`}>
-              <Table2 className="w-3.5 h-3.5 inline mr-1" /> 表格
+              <Table2 className="w-3.5 h-3.5 inline mr-1" /> {ap.table}
             </button>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-3.5 h-3.5" /> 新增行动
+                <Plus className="w-3.5 h-3.5" /> {ap.addAction}
               </Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>新增行动项</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{ap.newActionDialog}</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-2">
                 <div>
-                  <Label>标题</Label>
+                  <Label>{ap.titleLabel}</Label>
                   <Input className="mt-1" value={newItem.title} onChange={(e) => setNewItem({ ...newItem, title: e.target.value })} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Workstream</Label>
+                    <Label>{ap.workstreamLabel}</Label>
                     <Select value={newItem.workstream} onValueChange={(v) => setNewItem({ ...newItem, workstream: v })}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {Object.entries(workstreamLabels).map(([k, v]) => (
+                        {Object.entries(ap.workstreams).map(([k, v]) => (
                           <SelectItem key={k} value={k}>{v}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label>优先级</Label>
+                    <Label>{ap.priorityLabel}</Label>
                     <Select value={newItem.priority} onValueChange={(v) => setNewItem({ ...newItem, priority: v })}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="high">高</SelectItem>
-                        <SelectItem value="medium">中</SelectItem>
-                        <SelectItem value="low">低</SelectItem>
+                        <SelectItem value="high">{ap.priority.high}</SelectItem>
+                        <SelectItem value="medium">{ap.priority.medium}</SelectItem>
+                        <SelectItem value="low">{ap.priority.low}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>负责人</Label>
+                    <Label>{ap.ownerLabel}</Label>
                     <Input className="mt-1" value={newItem.owner} onChange={(e) => setNewItem({ ...newItem, owner: e.target.value })} />
                   </div>
                   <div>
-                    <Label>截止日期</Label>
+                    <Label>{ap.dueDateLabel}</Label>
                     <Input type="date" className="mt-1" value={newItem.due_date} onChange={(e) => setNewItem({ ...newItem, due_date: e.target.value })} />
                   </div>
                 </div>
                 <div>
-                  <Label>备注</Label>
+                  <Label>{ap.notesLabel}</Label>
                   <Textarea className="mt-1" value={newItem.notes} onChange={(e) => setNewItem({ ...newItem, notes: e.target.value })} />
                 </div>
                 <Button onClick={() => createMutation.mutate(newItem)} disabled={!newItem.title || createMutation.isPending} className="w-full bg-blue-600 hover:bg-blue-700">
-                  创建
+                  {ap.createBtn}
                 </Button>
               </div>
             </DialogContent>
@@ -241,11 +236,11 @@ export default function ActionPlan() {
                       <div className="flex items-start justify-between mb-1.5">
                         <p className="text-sm font-medium text-slate-800 leading-snug">{item.title}</p>
                         <Badge className={`${priorityColors[item.priority]} text-[9px] ml-2 flex-shrink-0`}>
-                          {item.priority === "high" ? "高" : item.priority === "medium" ? "中" : "低"}
+                          {ap.priority[item.priority] || item.priority}
                         </Badge>
                       </div>
                       {item.workstream && (
-                        <p className="text-[11px] text-slate-400 mb-2">{workstreamLabels[item.workstream] || item.workstream}</p>
+                        <p className="text-[11px] text-slate-400 mb-2">{ap.workstreams[item.workstream] || item.workstream}</p>
                       )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-[11px] text-slate-400">
@@ -273,7 +268,7 @@ export default function ActionPlan() {
                     </motion.div>
                   ))}
                   {colItems.length === 0 && (
-                    <p className="text-xs text-slate-400 text-center py-8">暂无行动项</p>
+                  <p className="text-xs text-slate-400 text-center py-8">{ap.noItemsKanban}</p>
                   )}
                 </div>
               </div>
@@ -284,20 +279,20 @@ export default function ActionPlan() {
         <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">标题</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Workstream</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">状态</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">优先级</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">负责人</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">截止日期</th>
-              </tr>
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">{ap.tableHeaders.title}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">{ap.tableHeaders.workstream}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">{ap.tableHeaders.status}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">{ap.tableHeaders.priority}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">{ap.tableHeaders.owner}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">{ap.tableHeaders.dueDate}</th>
+            </tr>
             </thead>
             <tbody>
               {items.map((item) => (
                 <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                   <td className="px-4 py-3 font-medium text-slate-800">{item.title}</td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">{workstreamLabels[item.workstream] || item.workstream}</td>
+                  <td className="px-4 py-3 text-slate-500 text-xs">{ap.workstreams[item.workstream] || item.workstream}</td>
                   <td className="px-4 py-3">
                     <Badge className={`${statusConfig[item.status]?.bg} ${statusConfig[item.status]?.text} text-[10px]`}>
                       {statusConfig[item.status]?.label}
@@ -305,7 +300,7 @@ export default function ActionPlan() {
                   </td>
                   <td className="px-4 py-3">
                     <Badge className={`${priorityColors[item.priority]} text-[10px]`}>
-                      {item.priority === "high" ? "高" : item.priority === "medium" ? "中" : "低"}
+                      {ap.priority[item.priority] || item.priority}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-slate-500 text-xs">{item.owner || "—"}</td>
@@ -314,7 +309,7 @@ export default function ActionPlan() {
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-slate-400 text-sm">暂无行动项，点击"新增行动"开始</td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-400 text-sm">{ap.noItems}</td>
                 </tr>
               )}
             </tbody>
