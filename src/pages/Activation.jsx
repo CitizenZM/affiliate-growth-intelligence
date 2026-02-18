@@ -4,6 +4,7 @@ import EvidenceTable from "../components/dashboard/EvidenceTable";
 import DatasetSelector from "../components/dashboard/DatasetSelector";
 import DataLoader from "../components/dashboard/DataLoader";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { useLanguage } from "@/components/LanguageContext";
 
 const funnelData = [
   { name: "Total", value: 1245, color: "#94A3B8" },
@@ -47,13 +48,15 @@ const derivationNotes = [
 
 export default function Activation() {
   const [datasetId, setDatasetId] = useState(null);
+  const { t } = useLanguage();
+  const ac = t('activation');
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">激活漏斗</h1>
-          <p className="text-sm text-slate-500 mt-1">从 Total 到 Active 到 Core Drivers 的转化全景</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{ac.title}</h1>
+          <p className="text-sm text-slate-500 mt-1">{ac.subtitle}</p>
         </div>
         <DatasetSelector value={datasetId} onChange={setDatasetId} />
       </div>
@@ -79,7 +82,7 @@ export default function Activation() {
             >
               {/* Funnel chart */}
               <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h3 className="text-sm font-semibold text-slate-700 mb-4">Publisher 激活漏斗</h3>
+                <h3 className="text-sm font-semibold text-slate-700 mb-4">{ac.chartTitle}</h3>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={funnelData} layout="vertical" barCategoryGap="30%">
@@ -88,7 +91,7 @@ export default function Activation() {
                 <YAxis dataKey="name" type="category" tick={{ fontSize: 13, fill: "#475569", fontWeight: 500 }} width={100} />
                 <Tooltip
                   contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0", boxShadow: "0 4px 12px rgba(0,0,0,0.06)" }}
-                  formatter={(value) => [`${value} publishers`, "数量"]}
+                  formatter={(value) => [`${value} publishers`, ac.quantity]}
                 />
                 <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={36}>
                   {funnelData.map((entry, idx) => (
@@ -112,7 +115,7 @@ export default function Activation() {
 
               {/* Evidence table */}
               <EvidenceTable
-                title="Active Publisher 明细"
+                title={ac.tableTitle}
                 columns={evidenceColumns}
                 data={evidenceData}
                 derivationNotes={section?.derivation_notes || derivationNotes}
