@@ -75,7 +75,7 @@ export default function KPICard({ title, value, target, status = "green", trend,
             className="mt-3 text-[12px] text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
           >
             {showEvidence ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            查看证据
+            {isEn ? "View Evidence" : "查看证据"}
           </button>
           <AnimatePresence>
             {showEvidence && (
