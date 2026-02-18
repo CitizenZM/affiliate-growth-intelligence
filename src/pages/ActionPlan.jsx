@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/components/LanguageContext";
+import { useTranslatedItems } from "@/components/dashboard/useTranslatedText";
 
 const statusConfig = {
   todo: { label: "To Do", bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-300" },
