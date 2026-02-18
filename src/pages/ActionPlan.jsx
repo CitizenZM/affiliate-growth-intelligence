@@ -367,6 +367,7 @@ Return a JSON array of action items.`,
                   </td>
                   <td className="px-4 py-3 text-slate-500 text-xs">{item.owner || "—"}</td>
                   <td className="px-4 py-3 text-slate-500 text-xs">{item.due_date || "—"}</td>
+                  <td className="px-4 py-3 text-slate-500 text-xs">{item.kpi_target || "—"}</td>
                 </tr>
               ))}
               {items.length === 0 && (
