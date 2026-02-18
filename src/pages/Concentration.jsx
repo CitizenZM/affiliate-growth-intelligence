@@ -6,6 +6,7 @@ import DatasetSelector from "../components/dashboard/DatasetSelector";
 import DataLoader from "../components/dashboard/DataLoader";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/components/LanguageContext";
 
 const evidenceColumns = [
   { key: "rank", label: "#" },
@@ -35,13 +36,15 @@ const derivationNotes = [
 
 export default function Concentration() {
   const [selectedDataset, setSelectedDataset] = useState(null);
+  const { t } = useLanguage();
+  const co = t('concentration');
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">集中度分析</h1>
-          <p className="text-sm text-slate-500 mt-1">Pareto 曲线揭示 GMV 集中风险与头部依赖</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{co.title}</h1>
+          <p className="text-sm text-slate-500 mt-1">{co.subtitle}</p>
         </div>
         <DatasetSelector value={selectedDataset} onChange={setSelectedDataset} />
       </div>
@@ -77,8 +80,8 @@ export default function Concentration() {
               status: top10Share > 0.6 ? "red" : top10Share > 0.5 ? "yellow" : "green" 
             },
             { 
-              label: "50% GMV 所需", 
-              value: `${publishersTo50} 个`, 
+              label: co.publishers50, 
+              value: `${publishersTo50}${co.unit50 ? ' ' + co.unit50 : ''}`, 
               status: publishersTo50 < 5 ? "red" : publishersTo50 < 10 ? "yellow" : "green" 
             },
           ];
@@ -128,7 +131,7 @@ export default function Concentration() {
                       m.status === "yellow" ? "bg-amber-50 text-amber-700 border-amber-200" :
                       "bg-green-50 text-green-700 border-green-200"
                     }`}>
-                      {m.status === "red" ? "超标" : m.status === "yellow" ? "关注" : "健康"}
+                      {m.status === "red" ? t('shared.exceed') : m.status === "yellow" ? t('shared.watch') : t('shared.healthy')}
                     </Badge>
                   </div>
                 ))}
@@ -136,7 +139,7 @@ export default function Concentration() {
 
               {/* Pareto chart */}
               <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h3 className="text-sm font-semibold text-slate-700 mb-4">Pareto 曲线 — 累计 Publisher % vs 累计 GMV %</h3>
+                <h3 className="text-sm font-semibold text-slate-700 mb-4">{co.paretoTitle}</h3>
                 <div className="h-[320px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={paretoData}>
@@ -161,7 +164,7 @@ export default function Concentration() {
               </div>
 
               <EvidenceTable
-                title="TopN 排名明细"
+                title={co.tableTitle}
                 columns={evidenceColumns}
                 data={topnTable.slice(0, 20)}
                 derivationNotes={derivationNotes}
