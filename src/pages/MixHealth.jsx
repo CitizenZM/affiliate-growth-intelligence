@@ -104,18 +104,32 @@ export default function MixHealth() {
           const mixHealthTable = getTable('mix_health_table');
           const totalGMV = getMetric('total_gmv');
 
-          // Build chart data from real data
-          const gmvData = mixHealthTable.map(item => ({
-            name: typeLabels[item.type] || item.type,
-            value: parseFloat(item.gmv_share),
-            color: typeColors[item.type] || typeColors.other
-          }));
+          // Aggregate into high-level categories
+          const categoryMap = {};
+          for (const item of mixHealthTable) {
+            const cat = TYPE_TO_CATEGORY[item.type] || 'other';
+            if (!categoryMap[cat]) categoryMap[cat] = { gmv: 0, gmvShare: 0, count: 0 };
+            categoryMap[cat].gmv += item.gmv || 0;
+            categoryMap[cat].gmvShare += parseFloat(item.gmv_share) || 0;
+            categoryMap[cat].count += item.count || 0;
+          }
 
-          const countData = mixHealthTable.map(item => ({
-            name: typeLabels[item.type] || item.type,
-            count: item.count,
-            target: Math.round(item.count * 1.2) // Simple target estimation
-          }));
+          const gmvData = Object.entries(HIGH_LEVEL_CATEGORIES)
+            .map(([key, cfg]) => ({
+              name: cfg.label,
+              value: parseFloat((categoryMap[key]?.gmvShare || 0).toFixed(1)),
+              color: cfg.color,
+              catKey: key,
+            }))
+            .filter(d => d.value > 0);
+
+          const countData = Object.entries(HIGH_LEVEL_CATEGORIES)
+            .map(([key, cfg]) => ({
+              name: cfg.label,
+              count: categoryMap[key]?.count || 0,
+              color: cfg.color,
+            }))
+            .filter(d => d.count > 0);
 
           // Build evidence table
           const evidenceData = mixHealthTable.map(item => {
