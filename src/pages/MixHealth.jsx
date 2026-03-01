@@ -4,7 +4,7 @@ import EvidenceTable from "../components/dashboard/EvidenceTable";
 import InsightsPanel from "../components/dashboard/InsightsPanel";
 import DatasetSelector from "../components/dashboard/DatasetSelector";
 import DataLoader from "../components/dashboard/DataLoader";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Sector } from "recharts";
 import { useLanguage } from "@/components/LanguageContext";
 
 const typeColors = {
