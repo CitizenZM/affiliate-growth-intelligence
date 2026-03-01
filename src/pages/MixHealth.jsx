@@ -49,11 +49,28 @@ const typeLabels = {
 
 
 
+const renderActiveShape = (props) => {
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, value } = props;
+  return (
+    <g>
+      <text x={cx} y={cy - 12} textAnchor="middle" fill="#0F172A" className="text-base" style={{ fontSize: 22, fontWeight: 700 }}>
+        {value}%
+      </text>
+      <text x={cx} y={cy + 14} textAnchor="middle" fill="#64748B" style={{ fontSize: 12 }}>
+        {payload.name}
+      </text>
+      <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 6} startAngle={startAngle} endAngle={endAngle} fill={fill} />
+      <Sector cx={cx} cy={cy} innerRadius={innerRadius - 4} outerRadius={innerRadius - 1} startAngle={startAngle} endAngle={endAngle} fill={fill} />
+    </g>
+  );
+};
+
 export default function MixHealth() {
   const [selectedDataset, setSelectedDataset] = useState(null);
-  const { t } = useLanguage();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const { t, language } = useLanguage();
   const mh = t('mixHealth');
-  const isEn = t('nav.overview') === 'Overview';
+  const isEn = language === 'en';
 
   const derivationNotes = [
     {
