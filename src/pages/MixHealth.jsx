@@ -7,24 +7,14 @@ import DataLoader from "../components/dashboard/DataLoader";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Sector } from "recharts";
 import { useLanguage } from "@/components/LanguageContext";
 
-// High-level category grouping
-const HIGH_LEVEL_CATEGORIES = {
-  content: { label: 'Content', color: '#3B82F6', target: { min: 25, max: 35 } },
-  deal_coupon: { label: 'Deal / Coupon', color: '#EF4444', target: { min: 0, max: 35 } },
+const TYPE_CONFIG = {
+  content:          { label: 'Content',           color: '#3B82F6', target: { min: 25, max: 35 } },
+  deal_coupon:      { label: 'Deal / Coupon',      color: '#EF4444', target: { min: 0,  max: 35 } },
   loyalty_cashback: { label: 'Loyalty / Cashback', color: '#8B5CF6', target: { min: 10, max: 20 } },
-  social_video: { label: 'Social / Video', color: '#10B981', target: { min: 5, max: 15 } },
-  other: { label: 'Other', color: '#94A3B8', target: { min: 0, max: 15 } },
-};
-
-// Map granular publisher_type → high-level category
-const TYPE_TO_CATEGORY = {
-  content: 'content',
-  deal_coupon: 'deal_coupon',
-  loyalty_cashback: 'loyalty_cashback',
-  social_video: 'social_video',
-  search: 'other',
-  tech_sub: 'other',
-  other: 'other',
+  social_video:     { label: 'Social / Video',     color: '#10B981', target: { min: 5,  max: 15 } },
+  search:           { label: 'Search',             color: '#F59E0B', target: { min: 5,  max: 15 } },
+  tech_sub:         { label: 'Tech / Sub',         color: '#06B6D4', target: { min: 0,  max: 10 } },
+  other:            { label: 'Other',              color: '#94A3B8', target: { min: 0,  max: 10 } },
 };
 
 const typeTargets = {
