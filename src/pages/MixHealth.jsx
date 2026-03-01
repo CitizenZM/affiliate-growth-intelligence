@@ -131,30 +131,23 @@ export default function MixHealth() {
             }))
             .filter(d => d.count > 0);
 
-          // Build evidence table
-          const evidenceData = mixHealthTable.map(item => {
-            const gmvPct = parseFloat(item.gmv_share);
-            const target = typeTargets[item.type] || { min: 0, max: 100 };
+          // Build evidence table from high-level categories
+          const evidenceData = gmvData.map(entry => {
+            const cfg = HIGH_LEVEL_CATEGORIES[entry.catKey];
+            const tgt = cfg?.target || { min: 0, max: 100 };
+            const gmvPct = entry.value;
             let status = mh.statusLabels.healthy;
-            let targetPct = `${target.min}-${target.max}%`;
-            
-            if (target.max === target.min) {
-              targetPct = `≤${target.max}%`;
-            }
-            
-            if (gmvPct > target.max) {
-              status = mh.statusLabels.exceed;
-            } else if (gmvPct < target.min) {
-              status = mh.statusLabels.low;
-            }
-
+            const targetPct = tgt.min === 0 ? `≤${tgt.max}%` : `${tgt.min}–${tgt.max}%`;
+            if (gmvPct > tgt.max) status = mh.statusLabels.exceed;
+            else if (tgt.min > 0 && gmvPct < tgt.min) status = mh.statusLabels.low;
+            const catData = categoryMap[entry.catKey] || {};
             return {
-              type: typeLabels[item.type] || item.type,
-              count: item.count,
-              gmv: `$${(item.gmv / 1000).toFixed(0)}K`,
-              gmv_share: item.gmv_share,
+              type: entry.name,
+              count: catData.count || 0,
+              gmv: `$${((catData.gmv || 0) / 1000).toFixed(0)}K`,
+              gmv_share: `${gmvPct}%`,
               targetPct,
-              status
+              status,
             };
           });
 
