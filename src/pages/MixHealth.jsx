@@ -204,7 +204,7 @@ export default function MixHealth() {
                     {/* Custom legend with target indicator */}
                     <div className="space-y-2.5 min-w-[130px]">
                       {gmvData.map((entry, idx) => {
-                        const cfg = HIGH_LEVEL_CATEGORIES[entry.catKey];
+                        const cfg = TYPE_CONFIG[entry.typeKey];
                         const tgt = cfg?.target;
                         let statusColor = 'text-emerald-600';
                         if (tgt) {
