@@ -116,20 +116,19 @@ export default function MixHealth() {
             .filter(d => d.count > 0)
             .sort((a, b) => b.count - a.count);
 
-          // Build evidence table from high-level categories
+          // Build evidence table directly from per-type data
           const evidenceData = gmvData.map(entry => {
-            const cfg = HIGH_LEVEL_CATEGORIES[entry.catKey];
+            const cfg = TYPE_CONFIG[entry.typeKey];
             const tgt = cfg?.target || { min: 0, max: 100 };
             const gmvPct = entry.value;
             let status = mh.statusLabels.healthy;
             const targetPct = tgt.min === 0 ? `≤${tgt.max}%` : `${tgt.min}–${tgt.max}%`;
             if (gmvPct > tgt.max) status = mh.statusLabels.exceed;
             else if (tgt.min > 0 && gmvPct < tgt.min) status = mh.statusLabels.low;
-            const catData = categoryMap[entry.catKey] || {};
             return {
               type: entry.name,
-              count: catData.count || 0,
-              gmv: `$${((catData.gmv || 0) / 1000).toFixed(0)}K`,
+              count: entry.count,
+              gmv: `$${((entry.gmv || 0) / 1000).toFixed(0)}K`,
               gmv_share: `${gmvPct}%`,
               targetPct,
               status,
