@@ -94,32 +94,27 @@ export default function MixHealth() {
           const mixHealthTable = getTable('mix_health_table');
           const totalGMV = getMetric('total_gmv');
 
-          // Aggregate into high-level categories
-          const categoryMap = {};
-          for (const item of mixHealthTable) {
-            const cat = TYPE_TO_CATEGORY[item.type] || 'other';
-            if (!categoryMap[cat]) categoryMap[cat] = { gmv: 0, gmvShare: 0, count: 0 };
-            categoryMap[cat].gmv += item.gmv || 0;
-            categoryMap[cat].gmvShare += parseFloat(item.gmv_share) || 0;
-            categoryMap[cat].count += item.count || 0;
-          }
-
-          const gmvData = Object.entries(HIGH_LEVEL_CATEGORIES)
-            .map(([key, cfg]) => ({
-              name: cfg.label,
-              value: parseFloat((categoryMap[key]?.gmvShare || 0).toFixed(1)),
-              color: cfg.color,
-              catKey: key,
+          // Build per-type chart data directly from mix_health_table
+          const gmvData = mixHealthTable
+            .map(item => ({
+              name: TYPE_CONFIG[item.type]?.label || item.type,
+              value: parseFloat(parseFloat(item.gmv_share).toFixed(1)),
+              color: TYPE_CONFIG[item.type]?.color || '#94A3B8',
+              typeKey: item.type,
+              gmv: item.gmv,
+              count: item.count,
             }))
-            .filter(d => d.value > 0);
+            .filter(d => d.value > 0)
+            .sort((a, b) => b.value - a.value);
 
-          const countData = Object.entries(HIGH_LEVEL_CATEGORIES)
-            .map(([key, cfg]) => ({
-              name: cfg.label,
-              count: categoryMap[key]?.count || 0,
-              color: cfg.color,
+          const countData = mixHealthTable
+            .map(item => ({
+              name: TYPE_CONFIG[item.type]?.label || item.type,
+              count: item.count,
+              color: TYPE_CONFIG[item.type]?.color || '#94A3B8',
             }))
-            .filter(d => d.count > 0);
+            .filter(d => d.count > 0)
+            .sort((a, b) => b.count - a.count);
 
           // Build evidence table from high-level categories
           const evidenceData = gmvData.map(entry => {
