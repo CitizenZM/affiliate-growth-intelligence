@@ -192,48 +192,85 @@ export default function MixHealth() {
               derivationNotes={derivationNotes}
             >
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                {/* Donut - GMV */}
+                {/* Donut - GMV (interactive) */}
                 <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-4">{mh.gmvChartTitle}</h3>
-                  <div className="h-[280px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={gmvData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={70}
-                          outerRadius={110}
-                          dataKey="value"
-                          stroke="none"
-                          paddingAngle={2}
-                        >
-                          {gmvData.map((entry, idx) => (
-                            <Cell key={idx} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0" }}
-                          formatter={(v) => [`${v}%`, "GMV 占比"]}
-                        />
-                        <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-1">{mh.gmvChartTitle}</h3>
+                  <p className="text-xs text-slate-400 mb-4">{isEn ? "Click a segment to highlight" : "点击扇形高亮"}</p>
+                  <div className="flex items-center gap-6">
+                    <div className="h-[240px] flex-1">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            activeIndex={activeIndex}
+                            activeShape={renderActiveShape}
+                            data={gmvData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={68}
+                            outerRadius={100}
+                            dataKey="value"
+                            stroke="none"
+                            paddingAngle={2}
+                            onMouseEnter={(_, idx) => setActiveIndex(idx)}
+                          >
+                            {gmvData.map((entry, idx) => (
+                              <Cell key={idx} fill={entry.color} opacity={activeIndex === idx ? 1 : 0.7} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0", fontSize: 12 }}
+                            formatter={(v, name) => [`${v}%`, name]}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    {/* Custom legend with target indicator */}
+                    <div className="space-y-2.5 min-w-[130px]">
+                      {gmvData.map((entry, idx) => {
+                        const cfg = HIGH_LEVEL_CATEGORIES[entry.catKey];
+                        const tgt = cfg?.target;
+                        let statusColor = 'text-emerald-600';
+                        if (tgt) {
+                          if (entry.value > tgt.max) statusColor = 'text-red-500';
+                          else if (entry.value < tgt.min) statusColor = 'text-amber-500';
+                        }
+                        return (
+                          <div
+                            key={idx}
+                            className={`flex items-center gap-2 cursor-pointer transition-opacity ${activeIndex === idx ? 'opacity-100' : 'opacity-60'}`}
+                            onMouseEnter={() => setActiveIndex(idx)}
+                          >
+                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: entry.color }} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-slate-700 truncate">{entry.name}</p>
+                              <p className={`text-[11px] font-semibold ${statusColor}`}>{entry.value}%</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
-                {/* Bar - Count */}
+                {/* Bar - Publisher Count by category */}
                 <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-4">{mh.countChartTitle}</h3>
-                  <div className="h-[280px]">
+                  <h3 className="text-sm font-semibold text-slate-700 mb-1">{mh.countChartTitle}</h3>
+                  <p className="text-xs text-slate-400 mb-4">{isEn ? "Publisher count by category" : "各类别 Publisher 数量"}</p>
+                  <div className="h-[240px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={countData} barCategoryGap="25%">
-                        <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94A3B8" }} />
-                        <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} />
-                        <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0" }} />
-                        <Bar dataKey="count" fill="#3B82F6" radius={[6, 6, 0, 0]} barSize={24} name={mh.current} />
-                        <Bar dataKey="target" fill="#E2E8F0" radius={[6, 6, 0, 0]} barSize={24} name={mh.target} />
+                      <BarChart data={countData} barCategoryGap="30%" layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
+                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#64748B" }} width={110} axisLine={false} tickLine={false} />
+                        <Tooltip
+                          contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0", fontSize: 12 }}
+                          formatter={(v) => [v, isEn ? 'Publishers' : '数量']}
+                        />
+                        <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={18} name={isEn ? 'Publishers' : '数量'}>
+                          {countData.map((entry, idx) => (
+                            <Cell key={idx} fill={entry.color} />
+                          ))}
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
