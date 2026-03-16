@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import InsightsPanel from "../components/dashboard/InsightsPanel";
 import { useLanguage } from "@/components/LanguageContext";
 
-const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const monthFormatter = new Intl.DateTimeFormat("en-US", { month: "short" });
 
 const taskDefs = [
   { key: "contentRecruit", start: 0, duration: 3, color: "#3B82F6", milestone: false },
@@ -25,8 +25,36 @@ const promoEvents = [
   { month: 11, label: "Holiday Season" },
 ];
 
+function buildRollingMonths(baseDate) {
+  return Array.from({ length: 12 }, (_, index) => {
+    const date = new Date(baseDate.getFullYear(), baseDate.getMonth() + index, 1);
+    return {
+      label: monthFormatter.format(date),
+      monthIndex: date.getMonth(),
+      year: date.getFullYear(),
+    };
+  });
+}
+
+function projectPromoEvents(baseDate) {
+  return promoEvents
+    .map((event) => {
+      const eventYear = event.month < baseDate.getMonth() ? baseDate.getFullYear() + 1 : baseDate.getFullYear();
+      const monthOffset = (eventYear - baseDate.getFullYear()) * 12 + (event.month - baseDate.getMonth());
+      return {
+        ...event,
+        offset: monthOffset,
+      };
+    })
+    .filter((event) => event.offset >= 0 && event.offset < 12);
+}
+
 export default function Timeline() {
-  const currentMonth = new Date().getMonth();
+  const now = new Date();
+  const rollingMonths = buildRollingMonths(now);
+  const visiblePromoEvents = projectPromoEvents(now);
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const currentDateOffset = (Math.max(now.getDate() - 1, 0) / daysInMonth) * (100 / 12);
   const { t } = useLanguage();
   const tl = t('timeline');
   const tasks = taskDefs.map(td => ({ ...td, name: tl.tasks[td.key] || td.key }));
@@ -43,14 +71,14 @@ export default function Timeline() {
         <div className="flex">
           <div className="w-[200px] flex-shrink-0" />
           <div className="flex-1 flex">
-            {months.map((m, i) => (
+            {rollingMonths.map((month, i) => (
               <div
-                key={m}
+                key={`${month.year}-${month.monthIndex}`}
                 className={`flex-1 text-center text-xs font-medium pb-2 border-b-2 ${
-                  i === currentMonth ? "text-blue-600 border-blue-600" : "text-slate-400 border-slate-100"
+                  i === 0 ? "text-blue-600 border-blue-600" : "text-slate-400 border-slate-100"
                 }`}
               >
-                {m}
+                {month.label}
               </div>
             ))}
           </div>
@@ -60,11 +88,11 @@ export default function Timeline() {
         <div className="flex mt-2 mb-1">
           <div className="w-[200px] flex-shrink-0 text-[10px] text-slate-400 font-medium pr-3 text-right">{t('shared.promoCalendar')}</div>
           <div className="flex-1 relative h-6">
-            {promoEvents.map((e) => (
+            {visiblePromoEvents.map((e) => (
               <div
                 key={e.label}
                 className="absolute top-0 h-full flex items-center"
-                style={{ left: `${(e.month / 12) * 100}%` }}
+                style={{ left: `${(e.offset / 12) * 100}%` }}
               >
                 <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[9px] whitespace-nowrap">{e.label}</Badge>
               </div>
@@ -107,11 +135,11 @@ export default function Timeline() {
           <div className="flex-1 relative">
             <div
               className="absolute top-0 w-0.5 h-4 bg-blue-600"
-              style={{ left: `${(currentMonth / 12) * 100}%` }}
+              style={{ left: `${currentDateOffset}%` }}
             />
             <div
               className="absolute top-4 text-[10px] text-blue-600 font-medium -translate-x-1/2"
-              style={{ left: `${(currentMonth / 12) * 100}%` }}
+              style={{ left: `${currentDateOffset}%` }}
             >
               {t('shared.today')}
             </div>

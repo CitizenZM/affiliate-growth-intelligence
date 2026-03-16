@@ -65,7 +65,21 @@ export default function DataLoader({
     retry: 1,
   });
 
-  const isLoading = metricsLoading || tablesLoading || sectionsLoading || publishersLoading;
+  const { data: dataset = null, isLoading: datasetLoading } = useQuery({
+    queryKey: ['dataset', datasetId],
+    queryFn: async () => {
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('数据加载超时（>10秒），请检查数据处理状态或刷新页面')), 10000)
+      );
+      const dataPromise = base44.entities.DataUpload.get(datasetId);
+      return Promise.race([dataPromise, timeoutPromise]);
+    },
+    enabled: !!datasetId,
+    refetchInterval: 10000,
+    retry: 1,
+  });
+
+  const isLoading = metricsLoading || tablesLoading || sectionsLoading || publishersLoading || datasetLoading;
 
   if (!datasetId) {
     return (
@@ -98,14 +112,28 @@ export default function DataLoader({
   const getMetric = (key) => metrics.find(m => m.metric_key === key)?.value_num || 0;
   const getTable = (key) => evidenceTables.find(t => t.table_key === key)?.data_json || [];
   const getSection = (id) => sections.find(s => s.section_id === id);
+  const capabilities = dataset?.capabilities || {};
+  const warnings = dataset?.processing_warnings || [];
+  const getEvidenceMeta = (key) => evidenceTables.find(t => t.table_key === key) || null;
+  const isModuleAvailable = (module) => {
+    if (module === 'approval') return !!capabilities.has_approval_breakdown;
+    if (module === 'mix') return !!capabilities.has_publisher_type;
+    if (module === 'commission') return !!capabilities.has_commission;
+    return true;
+  };
 
   return children({ 
+    dataset,
     metrics, 
     evidenceTables, 
     sections, 
     allPublishers,
     getMetric, 
     getTable, 
-    getSection 
+    getSection,
+    getEvidenceMeta,
+    capabilities,
+    warnings,
+    isModuleAvailable,
   });
 }

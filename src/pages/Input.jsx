@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Upload, ChevronRight, ChevronLeft, Loader2, FileSpreadsheet, History } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
+import { toast } from "sonner";
 import FilePreview from "../components/input/FilePreview";
 import FieldMapper from "../components/input/FieldMapper";
 import DataCleaning from "../components/input/DataCleaning";
@@ -44,8 +45,8 @@ export default function InputPage() {
   
   // Form data
   const [formData, setFormData] = useState({
-    websiteUrl: "",
-    webEnabled: false,
+    websiteUrl: "https://www.insta360.com",
+    webEnabled: true,
     platform: "",
     commission_model: "",
     market: "",
@@ -66,19 +67,15 @@ export default function InputPage() {
           let headers = [];
           
           if (ext === 'csv') {
-            const text = e.target.result;
-            const lines = text.trim().split('\n');
-            headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-            
-            for (let i = 1; i < lines.length; i++) {
-              if (!lines[i].trim()) continue;
-              const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-              const row = {};
-              headers.forEach((h, idx) => {
-                row[h] = values[idx] || null;
-              });
-              data.push(row);
-            }
+            const workbook = XLSX.read(e.target.result, { type: 'string' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            data = XLSX.utils.sheet_to_json(sheet, { defval: null }).map((row) =>
+              Object.fromEntries(
+                Object.entries(row).map(([key, value]) => [String(key).trim(), value == null ? null : String(value)])
+              )
+            );
+            headers = data.length > 0 ? Object.keys(data[0]) : [];
           } else if (ext === 'xlsx' || ext === 'xls') {
             const workbook = XLSX.read(e.target.result, { type: 'binary' });
             const sheetName = workbook.SheetNames[0];
@@ -135,11 +132,11 @@ export default function InputPage() {
       const autoMapping = {};
       const knownFields = {
         'publisher_id': ['publisher_id', 'publisherid', 'pub_id', 'id'],
-        'publisher_name': ['publisher_name', 'publishername', 'name', 'publisher'],
+        'publisher_name': ['publisher_name', 'publishername', 'name', 'publisher', 'partner'],
         'total_revenue': ['total_revenue', 'revenue', 'gmv', 'total_gmv', 'sales'],
-        'total_commission': ['total_commission', 'commission', 'payout'],
+        'total_commission': ['total_commission', 'commission', 'payout', 'action cost', 'total cost'],
         'clicks': ['clicks', 'num_clicks', 'click_count'],
-        'orders': ['orders', 'num_orders', 'transactions', 'conversions'],
+        'orders': ['orders', 'num_orders', 'transactions', 'conversions', 'actions'],
         'approved_revenue': ['approved_revenue', 'approved', 'approved_sales'],
         'pending_revenue': ['pending_revenue', 'pending'],
         'declined_revenue': ['declined_revenue', 'declined', 'reversed_revenue'],
@@ -148,6 +145,12 @@ export default function InputPage() {
       
       for (const header of parsedHeaders) {
         for (const [targetField, possibleNames] of Object.entries(knownFields)) {
+          if (
+            header.toLowerCase() === 'total cost' &&
+            parsedHeaders.some((item) => item.toLowerCase() === 'action cost')
+          ) {
+            continue;
+          }
           if (possibleNames.includes(header.toLowerCase())) {
             autoMapping[header] = targetField;
             break;
@@ -156,9 +159,7 @@ export default function InputPage() {
       }
       setFieldMapping(autoMapping);
       
-      // Upload file
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
-      setUploadResult({ file_url, file_name: f.name });
+      setUploadResult({ file_url: `local://${f.name}`, file_name: f.name });
       
       // Auto advance to preview
       setStep(1);
@@ -188,8 +189,8 @@ export default function InputPage() {
 
   const handleReuseConfig = (historyItem) => {
     setFormData({
-      websiteUrl: historyItem.website_url || "",
-      webEnabled: false,
+      websiteUrl: historyItem.website_url || "https://www.insta360.com",
+      webEnabled: true,
       platform: historyItem.platform || "",
       commission_model: historyItem.commission_model || "",
       market: historyItem.market || "",
@@ -210,7 +211,9 @@ export default function InputPage() {
       const dataset = await base44.entities.DataUpload.create({
         file_url: uploadResult?.file_url,
         file_name: uploadResult?.file_name,
-        website_url: formData.websiteUrl || undefined,
+        source_rows: parsedData,
+        source_headers: headers,
+        website_url: formData.websiteUrl || "https://www.insta360.com",
         platform: formData.platform || undefined,
         commission_model: formData.commission_model || undefined,
         market: formData.market || undefined,
@@ -220,27 +223,22 @@ export default function InputPage() {
         status: "processing",
       });
 
-      // Scrape website if enabled (don't wait)
-      if (formData.webEnabled && formData.websiteUrl) {
-        base44.functions.invoke('scrapeWebsite', {
-          website_url: formData.websiteUrl,
-          dataset_id: dataset.id,
-        }).catch(error => {
-          console.error('Website scraping error:', error);
-        });
-      }
-
-      // Trigger processing (don't wait, let it run in background)
-      base44.functions.invoke('processDataset', {
+      const processResult = await base44.functions.invoke('processDataset', {
         dataset_id: dataset.id,
         file_url: uploadResult?.file_url,
         field_mapping: fieldMapping,
         cleaning_options: cleaningOptions,
       });
 
-      return dataset;
+      return { dataset, processResult };
     },
-    onSuccess: () => {
+    onSuccess: ({ processResult }) => {
+      const warnings = processResult?.data?.warnings || [];
+      if (warnings.length > 0) {
+        toast.warning(`分析已启动，存在 ${warnings.length} 条数据提醒`);
+      } else {
+        toast.success("数据已提交并开始分析");
+      }
       setTimeout(() => {
         setStep(0);
         setFile(null);
@@ -248,8 +246,20 @@ export default function InputPage() {
         setParsedData(null);
         setHeaders([]);
         setFieldMapping({});
-        setFormData({});
+        setFormData({
+          websiteUrl: "https://www.insta360.com",
+          webEnabled: true,
+          platform: "",
+          commission_model: "",
+          market: "",
+          cookie_window: "",
+          version_label: "",
+        });
       }, 2000);
+    },
+    onError: (error) => {
+      console.error('Process dataset start error:', error);
+      toast.error(`提交失败: ${error.message}`);
     },
   });
 

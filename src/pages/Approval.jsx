@@ -6,6 +6,7 @@ import DatasetSelector from "../components/dashboard/DatasetSelector";
 import DataLoader from "../components/dashboard/DataLoader";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import { AlertCircle } from "lucide-react";
 import { useLanguage } from "@/components/LanguageContext";
 
 
@@ -47,9 +48,10 @@ export default function Approval() {
       </div>
 
       <DataLoader datasetId={selectedDataset}>
-        {({ getMetric, getTable, getSection }) => {
+        {({ getMetric, getTable, getSection, isModuleAvailable, warnings }) => {
           const section = getSection(5);
           const approvalTable = getTable('approval_table');
+          const approvalAvailable = isModuleAvailable('approval');
 
           // Build waterfall from metrics
           const totalGMV = getMetric('total_gmv');
@@ -100,6 +102,26 @@ export default function Approval() {
           const conclusion = section?.conclusion || (isEn
             ? `Overall Approval Rate ${(approvalRate * 100).toFixed(0)}%, ${approvalRate < 0.85 ? 'below 85% healthy threshold' : 'on target'}. Declined amount $${(declinedGMV / 1000).toFixed(0)}K.`
             : `整体 Approval Rate ${(approvalRate * 100).toFixed(0)}%，${approvalRate < 0.85 ? '低于 85% 健康线' : '达标'}。Declined 金额 $${(declinedGMV / 1000).toFixed(0)}K。`);
+
+          if (!approvalAvailable) {
+            return (
+              <SectionLayout
+                conclusion={section?.conclusion || (isEn ? "Approval breakdown is not available in this source file." : "当前源文件不包含审批拆分数据。")}
+                conclusionStatus="neutral"
+                derivationNotes={derivationNotes}
+              >
+                <div className="bg-amber-50 rounded-2xl border border-amber-200 p-6 flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">{t('shared.partialModule')}</p>
+                    <p className="text-sm text-amber-700 mt-1">
+                      {warnings[0] || (isEn ? "This dataset has revenue, clicks, orders, and cost data, but no approved/pending/declined revenue split." : "该数据集包含收入、点击、订单和成本，但缺少 approved/pending/declined 拆分。")}
+                    </p>
+                  </div>
+                </div>
+              </SectionLayout>
+            );
+          }
 
           return (
             <>

@@ -4,7 +4,7 @@ import { createPageUrl } from "./utils";
 import {
   LayoutDashboard, Upload, Filter, PieChart, BarChart3,
   ScatterChart, ShieldCheck, Layers, ListChecks, CalendarRange,
-  FileText, Database, ChevronLeft, ChevronRight, Menu, X,
+  FileText, Database, ChevronLeft, ChevronRight, Menu,
   Download, Globe, Bell, Languages
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -166,7 +166,14 @@ const LayoutContent = ({ children, currentPageName }) => {
           <div className="p-3 border-t border-slate-100">
             <div className="bg-slate-50 rounded-lg p-3">
               <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">{t('layout.dataVersion')}</p>
-              <p className="text-xs text-slate-600 mt-1 font-medium">v2026.02 — Latest</p>
+              <p className="text-xs text-slate-600 mt-1 font-medium">
+                {latestDataset?.version_label || 'Latest'}
+              </p>
+              {latestDataset?.processing_warnings?.length > 0 && (
+                <p className="text-[11px] text-amber-600 mt-1">
+                  {latestDataset.processing_warnings[0]}
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -189,13 +196,20 @@ const LayoutContent = ({ children, currentPageName }) => {
               </span>
             </div>
             {latestDataset && (
-              <ProcessingStatus 
-                status={latestDataset.status}
-                processingProgress={latestDataset.processing_progress}
-                processingStep={latestDataset.processing_step}
-                processingStartedAt={latestDataset.processing_started_at}
-                processingCompletedAt={latestDataset.processing_completed_at}
-              />
+              <div className="flex items-center gap-3">
+                <ProcessingStatus 
+                  status={latestDataset.status}
+                  processingProgress={latestDataset.processing_progress}
+                  processingStep={latestDataset.processing_step}
+                  processingStartedAt={latestDataset.processing_started_at}
+                  processingCompletedAt={latestDataset.processing_completed_at}
+                />
+                {latestDataset.processing_warnings?.length > 0 && latestDataset.status === 'completed' && (
+                  <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-1">
+                    {t('shared.partialDataset')}
+                  </span>
+                )}
+              </div>
             )}
           </div>
           <div className="flex items-center gap-2">

@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Sparkles, Loader2, Database } from "lucide-react";
 import { useLanguage } from "@/components/LanguageContext";
+import { useTranslatedItems } from "@/components/dashboard/useTranslatedText";
 
 export default function Dashboard() {
   const [selectedDatasetId, setSelectedDatasetId] = useState(null);
   const { t } = useLanguage();
-  const db = t('dashboard');
+  const db = t('overview');
   const isEn = t('nav.overview') === 'Overview';
 
   // Get all datasets with timeout
@@ -75,39 +76,51 @@ export default function Dashboard() {
 
   // Build KPIs from metrics
   const getMetric = (key) => metrics.find(m => m.metric_key === key)?.value_num || 0;
+  const selectedDataset = datasets.find((d) => d.id === selectedDatasetId) || null;
+  const brandContext = selectedDataset?.website_scrape_data;
+  const warnings = selectedDataset?.processing_warnings || [];
+  const hasPartialData = warnings.length > 0;
+  const capabilities = selectedDataset?.capabilities || {};
+  const approvalAvailable = !!capabilities.has_approval_breakdown;
+  const approvalWarning = warnings.find((warning) => warning.toLowerCase().includes('approval'));
 
   const kpis = [
     {
-      title: "Active Ratio",
+      title: db.kpis?.activeRatio || "Active Ratio",
       value: `${(getMetric('active_ratio') * 100).toFixed(1)}%`,
       target: "40%",
       status: getMetric('active_ratio') < 0.4 ? "yellow" : getMetric('active_ratio') >= 0.5 ? "green" : "yellow",
     },
     {
-      title: isEn ? "Top10 GMV Share" : "Top10 GMV 占比",
+      title: db.kpis?.top10Share || (isEn ? "Top10 GMV Share" : "Top10 GMV 占比"),
       value: `${(getMetric('top10_share') * 100).toFixed(0)}%`,
       target: "≤50%",
       status: getMetric('top10_share') > 0.7 ? "red" : getMetric('top10_share') > 0.5 ? "yellow" : "green",
     },
     {
-      title: "Total GMV",
+      title: db.kpis?.totalGmv || "Total GMV",
       value: `$${(getMetric('total_gmv') / 1000).toFixed(0)}K`,
       status: "green",
     },
     {
-      title: "GMV/Active Publisher",
+      title: db.kpis?.gmvPerActive || "GMV/Active Publisher",
       value: `$${getMetric('gmv_per_active').toFixed(0)}`,
       target: "$4,000",
       status: getMetric('gmv_per_active') < 3500 ? "yellow" : "green",
     },
     {
-      title: "Approval Rate",
-      value: `${(getMetric('approval_rate') * 100).toFixed(0)}%`,
+      title: db.kpis?.approvalRate || "Approval Rate",
+      value: approvalAvailable ? `${(getMetric('approval_rate') * 100).toFixed(0)}%` : "--",
       target: "≥85%",
-      status: getMetric('approval_rate') < 0.75 ? "red" : getMetric('approval_rate') < 0.85 ? "yellow" : "green",
+      status: approvalAvailable ? (getMetric('approval_rate') < 0.75 ? "red" : getMetric('approval_rate') < 0.85 ? "yellow" : "green") : "neutral",
+      evidenceRows: approvalAvailable ? [
+        { label: "Approval Rate", value: `${(getMetric('approval_rate') * 100).toFixed(1)}%` },
+      ] : [
+        { label: "Status", value: approvalWarning || "Approval split unavailable in this dataset" },
+      ],
     },
     {
-      title: isEn ? "Publishers for 50% GMV" : "50% GMV 所需",
+      title: db.kpis?.publishersTo50 || (isEn ? "Publishers for 50% GMV" : "50% GMV 所需"),
       value: `${getMetric('publishers_to_50pct')}`,
       unit: isEn ? "" : " 个",
       status: getMetric('publishers_to_50pct') < 5 ? "red" : getMetric('publishers_to_50pct') < 10 ? "yellow" : "green",
@@ -116,12 +129,14 @@ export default function Dashboard() {
 
   // Extract risks and opportunities from sections
   const risks = sections
-    .flatMap(s => (s.key_findings || []).filter(f => f.type === 'risk'))
+    .flatMap(s => (s.key_findings || []).filter(f => typeof f === 'object' && f.type === 'risk'))
     .slice(0, 3);
 
   const opportunities = sections
-    .flatMap(s => (s.key_findings || []).filter(f => f.type === 'opportunity'))
+    .flatMap(s => (s.key_findings || []).filter(f => typeof f === 'object' && f.type === 'opportunity'))
     .slice(0, 3);
+  const translatedRisks = useTranslatedItems(risks, ["title", "trigger", "action", "owner", "deadline"]);
+  const translatedOpportunities = useTranslatedItems(opportunities, ["title", "trigger", "action", "owner", "deadline"]);
 
   if (datasetsLoading) {
     return (
@@ -135,12 +150,12 @@ export default function Dashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <Database className="w-16 h-16 text-slate-300" />
-        <h2 className="text-xl font-semibold text-slate-700">{isEn ? "No datasets" : "暂无数据集"}</h2>
-        <p className="text-sm text-slate-500">{isEn ? "Please upload a CSV file on the Input page" : "请先在数据接入页面上传 CSV 文件"}</p>
+        <h2 className="text-xl font-semibold text-slate-700">{db.emptyTitle || (isEn ? "No datasets" : "暂无数据集")}</h2>
+        <p className="text-sm text-slate-500">{db.emptySubtitle || (isEn ? "Please upload a CSV file on the Input page" : "请先在数据接入页面上传 CSV 文件")}</p>
         <Link to={createPageUrl('Input')}>
           <Button className="bg-blue-600 hover:bg-blue-700">
             <Sparkles className="w-4 h-4 mr-2" />
-            {isEn ? "Upload Data" : "开始上传数据"}
+            {db.uploadData || (isEn ? "Upload Data" : "开始上传数据")}
           </Button>
         </Link>
       </div>
@@ -152,18 +167,23 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Affiliate Growth Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">{isEn ? "Channel health & core risks at a glance" : "一屏掌握渠道健康度与核心风险机会"}</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{db.title}</h1>
+          <p className="text-sm text-slate-500 mt-1">{db.subtitle}</p>
         </div>
-        <div className="flex gap-2">
+      <div className="flex gap-2">
+          {hasPartialData && (
+            <div className="px-3 py-2 rounded-lg bg-amber-50 text-amber-700 text-xs border border-amber-200">
+              {t('shared.partialDataset')}
+            </div>
+          )}
           <Select value={selectedDatasetId || ''} onValueChange={setSelectedDatasetId}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder={isEn ? "Select Dataset" : "选择数据集"} />
+              <SelectValue placeholder={db.placeholders?.selectDataset || (isEn ? "Select Dataset" : "选择数据集")} />
             </SelectTrigger>
             <SelectContent>
               {datasets.map(d => (
                 <SelectItem key={d.id} value={d.id}>
-                  {d.version_label || d.file_name} ({d.status})
+                  {d.version_label || d.file_name} ({db.placeholders?.status || (isEn ? "Status" : "状态")}: {d.status})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -171,7 +191,7 @@ export default function Dashboard() {
           <Link to={createPageUrl("ReportCenter")}>
             <Button variant="outline" size="sm" className="gap-1.5 text-xs">
               <FileText className="w-3.5 h-3.5" />
-              {isEn ? "Generate Full Report" : "生成完整报告"}
+              {db.generateReport || (isEn ? "Generate Full Report" : "生成完整报告")}
             </Button>
           </Link>
         </div>
@@ -180,13 +200,13 @@ export default function Dashboard() {
       {metricsLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
-          <span className="text-sm text-slate-500">{isEn ? "Loading metrics..." : "加载指标数据..."}</span>
+          <span className="text-sm text-slate-500">{db.loadingMetrics || (isEn ? "Loading metrics..." : "加载指标数据...")}</span>
         </div>
       ) : (
         <>
           {/* KPI Cockpit */}
           <div>
-            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">{isEn ? "Core KPIs" : "核心 KPI"}</h2>
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">{db.coreKpis || (isEn ? "Core KPIs" : "核心 KPI")}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {kpis.map((kpi, i) => (
                 <KPICard key={i} {...kpi} />
@@ -201,10 +221,10 @@ export default function Dashboard() {
                 <div>
                   <h2 className="text-sm font-semibold text-red-500/80 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-red-500" />
-                    {isEn ? "Top Risks" : "主要风险"}
+                    {db.top3Risks || (isEn ? "Top Risks" : "主要风险")}
                   </h2>
                   <div className="space-y-3">
-                    {risks.map((r, i) => (
+                    {translatedRisks.map((r, i) => (
                       <RiskOpportunityCard key={i} type="risk" {...r} />
                     ))}
                   </div>
@@ -215,10 +235,10 @@ export default function Dashboard() {
                 <div>
                   <h2 className="text-sm font-semibold text-blue-500/80 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    {isEn ? "Top Opportunities" : "主要机会"}
+                    {db.top3Opportunities || (isEn ? "Top Opportunities" : "主要机会")}
                   </h2>
                   <div className="space-y-3">
-                    {opportunities.map((o, i) => (
+                    {translatedOpportunities.map((o, i) => (
                       <RiskOpportunityCard key={i} type="opportunity" {...o} />
                     ))}
                   </div>
@@ -227,19 +247,55 @@ export default function Dashboard() {
             </div>
           )}
 
+          {brandContext && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-5">
+              <div className="flex items-center justify-between gap-4 mb-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-700">{db.brandContextTitle || "Insta360 Brand Context"}</h3>
+                  <p className="text-xs text-slate-500 mt-1">{db.brandContextSubtitle || "Auto-enriched brand and site research"} • {selectedDataset?.website_url || 'https://www.insta360.com'}</p>
+                </div>
+                {brandContext.has_promotion && (
+                  <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] border border-blue-200">
+                    {db.promotionDetected || "Promotion detected"}
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-slate-400 text-xs uppercase tracking-wide mb-1">{db.brand || "Brand"}</p>
+                  <p className="text-slate-700 font-medium">{brandContext.brand_name || 'Insta360'}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 text-xs uppercase tracking-wide mb-1">{db.productCategories || "Product Categories"}</p>
+                  <p className="text-slate-700">{(brandContext.product_categories || []).join(' / ') || db.notAvailable || 'Not available'}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 text-xs uppercase tracking-wide mb-1">{db.keySellingPoints || "Key Selling Points"}</p>
+                  <p className="text-slate-700">{(brandContext.key_selling_points || []).slice(0, 3).join(' / ') || db.notAvailable || 'Not available'}</p>
+                </div>
+              </div>
+              {warnings.length > 0 && (
+                <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200">
+                  <p className="text-xs font-semibold text-amber-800 mb-1">{db.datasetWarnings || "Dataset warnings"}</p>
+                  <p className="text-xs text-amber-700">{warnings[0]}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Quick links */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5">
-            <h3 className="text-sm font-semibold text-slate-700 mb-3">{isEn ? "Quick Links" : "快速跳转"}</h3>
+            <h3 className="text-sm font-semibold text-slate-700 mb-3">{db.quickLinks || (isEn ? "Quick Links" : "快速跳转")}</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {[
-                { label: isEn ? "Activation Funnel" : "激活漏斗", page: "Activation" },
-                { label: isEn ? "Concentration" : "集中度分析", page: "Concentration" },
-                { label: isEn ? "Mix Health" : "结构健康", page: "MixHealth" },
-                { label: isEn ? "Efficiency Quadrant" : "效率象限", page: "Efficiency" },
-                { label: isEn ? "Trade Quality" : "交易质量", page: "Approval" },
-                { label: isEn ? "Tier Management" : "分层治理", page: "OperatingSystem" },
-                { label: isEn ? "Action Plan" : "行动计划", page: "ActionPlan" },
-                { label: isEn ? "Data Input" : "数据接入", page: "Input" },
+                { label: db.quickLinkLabels?.activation || (isEn ? "Activation Funnel" : "激活漏斗"), page: "Activation" },
+                { label: db.quickLinkLabels?.concentration || (isEn ? "Concentration" : "集中度分析"), page: "Concentration" },
+                { label: db.quickLinkLabels?.mixHealth || (isEn ? "Mix Health" : "结构健康"), page: "MixHealth" },
+                { label: db.quickLinkLabels?.efficiency || (isEn ? "Efficiency Quadrant" : "效率象限"), page: "Efficiency" },
+                { label: db.quickLinkLabels?.approval || (isEn ? "Trade Quality" : "交易质量"), page: "Approval" },
+                { label: db.quickLinkLabels?.operatingSystem || (isEn ? "Tier Management" : "分层治理"), page: "OperatingSystem" },
+                { label: db.quickLinkLabels?.actionPlan || (isEn ? "Action Plan" : "行动计划"), page: "ActionPlan" },
+                { label: db.quickLinkLabels?.input || (isEn ? "Data Input" : "数据接入"), page: "Input" },
               ].map((link) => (
                 <Link
                   key={link.page}

@@ -5,6 +5,7 @@ import InsightsPanel from "../components/dashboard/InsightsPanel";
 import DatasetSelector from "../components/dashboard/DatasetSelector";
 import DataLoader from "../components/dashboard/DataLoader";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Sector } from "recharts";
+import { AlertCircle } from "lucide-react";
 import { useLanguage } from "@/components/LanguageContext";
 
 const TYPE_CONFIG = {
@@ -90,9 +91,30 @@ export default function MixHealth() {
       </div>
 
       <DataLoader datasetId={selectedDataset}>
-        {({ getTable, getMetric }) => {
+        {({ getTable, getMetric, isModuleAvailable, warnings }) => {
           const mixHealthTable = getTable('mix_health_table');
           const totalGMV = getMetric('total_gmv');
+          const mixAvailable = isModuleAvailable('mix');
+
+          if (!mixAvailable) {
+            return (
+              <SectionLayout
+                conclusion={isEn ? "Publisher type data is unavailable, so structural mix analysis is partial." : "缺少 publisher type 字段，因此结构分析为部分可用。"}
+                conclusionStatus="neutral"
+                derivationNotes={derivationNotes}
+              >
+                <div className="bg-amber-50 rounded-2xl border border-amber-200 p-6 flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">{t('shared.partialModule')}</p>
+                    <p className="text-sm text-amber-700 mt-1">
+                      {warnings.find((warning) => warning.toLowerCase().includes('publisher type')) || (isEn ? "Upload a source file with publisher type/category columns to unlock mix health insights." : "请上传包含 publisher type/category 字段的数据源以启用结构健康分析。")}
+                    </p>
+                  </div>
+                </div>
+              </SectionLayout>
+            );
+          }
 
           // Build per-type chart data directly from mix_health_table
           const gmvData = mixHealthTable

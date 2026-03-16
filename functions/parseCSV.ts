@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     const csvText = await response.text();
 
     // Parse CSV (handle quoted fields with commas)
-    const lines = csvText.trim().split('\n');
+    const lines = csvText.trim().split(/\r?\n/);
     const parseCSVLine = (line) => {
       const result = [];
       let current = '';
@@ -32,7 +32,12 @@ Deno.serve(async (req) => {
       for (let i = 0; i < line.length; i++) {
         const char = line[i];
         if (char === '"') {
-          inQuotes = !inQuotes;
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
         } else if (char === ',' && !inQuotes) {
           result.push(current.trim());
           current = '';
@@ -61,11 +66,11 @@ Deno.serve(async (req) => {
     if (Object.keys(fieldMapping).length === 0) {
       const knownFields = {
         'publisher_id': ['publisher_id', 'publisherid', 'pub_id', 'id'],
-        'publisher_name': ['publisher_name', 'publishername', 'name', 'publisher'],
+        'publisher_name': ['publisher_name', 'publishername', 'name', 'publisher', 'partner'],
         'total_revenue': ['total_revenue', 'revenue', 'gmv', 'total_gmv', 'sales'],
-        'total_commission': ['total_commission', 'commission', 'payout'],
+        'total_commission': ['total_commission', 'commission', 'payout', 'action cost', 'total cost'],
         'clicks': ['clicks', 'num_clicks', 'click_count'],
-        'orders': ['orders', 'num_orders', 'transactions', 'conversions'],
+        'orders': ['orders', 'num_orders', 'transactions', 'conversions', 'actions'],
         'approved_revenue': ['approved_revenue', 'approved', 'approved_sales'],
         'pending_revenue': ['pending_revenue', 'pending'],
         'declined_revenue': ['declined_revenue', 'declined', 'reversed_revenue'],
@@ -88,12 +93,22 @@ Deno.serve(async (req) => {
     const publishers = [];
     const seen = new Set();
     const cleanOpts = cleaning_options || {};
+    const observedCapabilities = {
+      has_approval_breakdown: false,
+      has_publisher_type: false,
+      has_orders: false,
+      has_commission: false,
+      has_clicks: false,
+      has_brand_context: false,
+    };
+    const warnings = [];
     
     for (const row of rows) {
       const publisher = { dataset_id };
       
       // Map fields
       let hasRequiredFields = false;
+      let hasBusinessMetric = false;
       for (const [sourceField, targetField] of Object.entries(fieldMapping)) {
         if (!targetField) continue;
         
@@ -120,12 +135,45 @@ Deno.serve(async (req) => {
         if (targetField === 'publisher_name' && value) {
           hasRequiredFields = true;
         }
+        if (['total_revenue', 'orders', 'clicks', 'total_commission'].includes(targetField) && value != null && value !== '' && Number(value) > 0) {
+          hasBusinessMetric = true;
+        }
+        if (targetField === 'approved_revenue' || targetField === 'pending_revenue' || targetField === 'declined_revenue') {
+          observedCapabilities.has_approval_breakdown = true;
+        }
+        if (targetField === 'publisher_type' && value) {
+          observedCapabilities.has_publisher_type = true;
+        }
+        if (targetField === 'orders' && Number(value) > 0) {
+          observedCapabilities.has_orders = true;
+        }
+        if (targetField === 'total_commission' && Number(value) > 0) {
+          observedCapabilities.has_commission = true;
+        }
+        if (targetField === 'clicks' && Number(value) > 0) {
+          observedCapabilities.has_clicks = true;
+        }
       }
-      
-      // Skip rows without required fields
-      if (!hasRequiredFields) continue;
 
       // Normalize publisher_id
+      const fallbackPublisherName =
+        publisher.publisher_name ||
+        row.Partner ||
+        row.partner ||
+        row.Name ||
+        row.name ||
+        row.Publisher ||
+        row.publisher ||
+        null;
+
+      if (!publisher.publisher_name && fallbackPublisherName) {
+        publisher.publisher_name = fallbackPublisherName;
+        hasRequiredFields = true;
+      }
+
+      // Skip rows without required fields or any usable business metric
+      if (!hasRequiredFields || !hasBusinessMetric) continue;
+
       const pubKey = publisher.publisher_id || publisher.publisher_name?.toLowerCase().replace(/\s+/g, '_');
       publisher.publisher_id_norm = pubKey;
       
@@ -141,6 +189,22 @@ Deno.serve(async (req) => {
       }
       
       publishers.push(publisher);
+    }
+
+    if (!Object.values(fieldMapping).includes('publisher_name')) {
+      warnings.push('Source file did not provide a canonical publisher_name column; using Partner/name fallback mapping.');
+    }
+    if (!observedCapabilities.has_approval_breakdown) {
+      warnings.push('Approval breakdown columns were not present. Approval module will be marked partial.');
+    }
+    if (!observedCapabilities.has_publisher_type) {
+      warnings.push('Publisher type column was not present. Mix Health module will be marked partial.');
+    }
+    if (!observedCapabilities.has_orders) {
+      warnings.push('Order/action volume was not present. Conversion-based insights may be limited.');
+    }
+    if (!observedCapabilities.has_commission) {
+      warnings.push('Commission or action cost was not present. Cost-efficiency insights may be limited.');
     }
 
     // Bulk create publishers (use bulkCreate if available, otherwise batch)
@@ -164,11 +228,23 @@ Deno.serve(async (req) => {
     }
 
     // Update dataset
-    await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+    const datasetPatch = {
       status: 'processing',
       row_count: rows.length,
       field_mapping: fieldMapping,
-    });
+      capabilities: observedCapabilities,
+      processing_warnings: warnings,
+    };
+    try {
+      await base44.asServiceRole.entities.DataUpload.update(dataset_id, datasetPatch);
+    } catch (updateError) {
+      console.warn('DataUpload update with capabilities failed, falling back:', updateError);
+      await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+        status: 'processing',
+        row_count: rows.length,
+        field_mapping: fieldMapping,
+      });
+    }
 
     // Complete job
     const jobs = await base44.asServiceRole.entities.Job.filter({ dataset_id, job_type: 'parse_csv' });
@@ -184,7 +260,10 @@ Deno.serve(async (req) => {
     return Response.json({ 
       success: true, 
       row_count: rows.length,
+      publisher_count: publishers.length,
       field_mapping: fieldMapping,
+      capabilities: observedCapabilities,
+      warnings,
     });
 
   } catch (error) {

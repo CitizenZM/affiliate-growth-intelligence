@@ -2,7 +2,6 @@ import React from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Trash2, Filter, TrendingUp } from "lucide-react";
 
 export default function DataCleaning({ options, onChange }) {

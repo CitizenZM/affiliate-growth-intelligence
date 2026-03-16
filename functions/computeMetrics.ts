@@ -21,12 +21,23 @@ Deno.serve(async (req) => {
 
     // Get all publishers for this dataset
     const publishers = await base44.asServiceRole.entities.Publisher.filter({ dataset_id });
+    const dataset = await base44.asServiceRole.entities.DataUpload.get(dataset_id);
+    const capabilities = dataset?.capabilities || {};
+    const warnings = Array.isArray(dataset?.processing_warnings) ? [...dataset.processing_warnings] : [];
 
     if (publishers.length === 0) {
       throw new Error('No publishers found for dataset');
     }
 
     const calc_version = new Date().toISOString();
+    const createMetric = (metric_key, value_num, module_id) =>
+      base44.asServiceRole.entities.MetricSnapshot.create({
+        dataset_id,
+        metric_key,
+        value_num,
+        calc_version,
+        module_id,
+      });
 
     // ============ MODULE 0 & 1: Activation Metrics ============
     const total_publishers = publishers.length;
@@ -36,46 +47,18 @@ Deno.serve(async (req) => {
     
     const total_gmv = publishers.reduce((sum, p) => sum + (p.total_revenue || 0), 0);
     const gmv_per_active = active_count > 0 ? total_gmv / active_count : 0;
+    const total_clicks = publishers.reduce((sum, p) => sum + (p.clicks || 0), 0);
+    const total_orders = publishers.reduce((sum, p) => sum + (p.orders || 0), 0);
+    const total_commission = publishers.reduce((sum, p) => sum + (p.total_commission || 0), 0);
 
-    await base44.asServiceRole.entities.MetricSnapshot.create({
-      dataset_id,
-      metric_key: 'total_publishers',
-      value_num: total_publishers,
-      calc_version,
-      module_id: 0,
-    });
-
-    await base44.asServiceRole.entities.MetricSnapshot.create({
-      dataset_id,
-      metric_key: 'active_publishers',
-      value_num: active_count,
-      calc_version,
-      module_id: 1,
-    });
-
-    await base44.asServiceRole.entities.MetricSnapshot.create({
-      dataset_id,
-      metric_key: 'active_ratio',
-      value_num: active_ratio,
-      calc_version,
-      module_id: 1,
-    });
-
-    await base44.asServiceRole.entities.MetricSnapshot.create({
-      dataset_id,
-      metric_key: 'total_gmv',
-      value_num: total_gmv,
-      calc_version,
-      module_id: 0,
-    });
-
-    await base44.asServiceRole.entities.MetricSnapshot.create({
-      dataset_id,
-      metric_key: 'gmv_per_active',
-      value_num: gmv_per_active,
-      calc_version,
-      module_id: 0,
-    });
+    await createMetric('total_publishers', total_publishers, 0);
+    await createMetric('active_publishers', active_count, 1);
+    await createMetric('active_ratio', active_ratio, 1);
+    await createMetric('total_gmv', total_gmv, 0);
+    await createMetric('gmv_per_active', gmv_per_active, 0);
+    await createMetric('total_clicks', total_clicks, 0);
+    await createMetric('total_orders', total_orders, 0);
+    await createMetric('total_commission', total_commission, 0);
 
     // Activation Evidence Table
     await base44.asServiceRole.entities.EvidenceTable.create({
@@ -86,9 +69,12 @@ Deno.serve(async (req) => {
         { label: 'Active Publishers', value: active_count },
         { label: 'Active Ratio', value: `${(active_ratio * 100).toFixed(1)}%` },
         { label: 'GMV per Active', value: `$${gmv_per_active.toFixed(0)}` },
+        { label: 'Clicks', value: total_clicks },
+        { label: 'Orders', value: total_orders },
+        { label: 'Commission / Action Cost', value: `$${total_commission.toFixed(2)}` },
       ],
       module_id: 1,
-      row_count: 4,
+      row_count: 7,
     });
 
     // ============ MODULE 2: Concentration ============
@@ -111,29 +97,9 @@ Deno.serve(async (req) => {
       if (cumulative >= total_gmv * 0.5) break;
     }
 
-    await base44.asServiceRole.entities.MetricSnapshot.create({
-      dataset_id,
-      metric_key: 'top1_share',
-      value_num: top1_share,
-      calc_version,
-      module_id: 2,
-    });
-
-    await base44.asServiceRole.entities.MetricSnapshot.create({
-      dataset_id,
-      metric_key: 'top10_share',
-      value_num: top10_share,
-      calc_version,
-      module_id: 2,
-    });
-
-    await base44.asServiceRole.entities.MetricSnapshot.create({
-      dataset_id,
-      metric_key: 'publishers_to_50pct',
-      value_num: publishers_to_50pct,
-      calc_version,
-      module_id: 2,
-    });
+    await createMetric('top1_share', top1_share, 2);
+    await createMetric('top10_share', top10_share, 2);
+    await createMetric('publishers_to_50pct', publishers_to_50pct, 2);
 
     // TopN Evidence Table
     await base44.asServiceRole.entities.EvidenceTable.create({
@@ -174,115 +140,132 @@ Deno.serve(async (req) => {
     });
 
     // ============ MODULE 3: Mix Health ============
-    const typeBuckets = {};
-    active_publishers.forEach(p => {
-      const bucket = p.publisher_type || 'other';
-      if (!typeBuckets[bucket]) {
-        typeBuckets[bucket] = { count: 0, gmv: 0 };
-      }
-      typeBuckets[bucket].count++;
-      typeBuckets[bucket].gmv += p.total_revenue || 0;
-    });
+    if (capabilities.has_publisher_type) {
+      const typeBuckets = {};
+      active_publishers.forEach(p => {
+        const bucket = p.publisher_type || 'other';
+        if (!typeBuckets[bucket]) {
+          typeBuckets[bucket] = { count: 0, gmv: 0 };
+        }
+        typeBuckets[bucket].count++;
+        typeBuckets[bucket].gmv += p.total_revenue || 0;
+      });
 
-    const mixData = Object.entries(typeBuckets).map(([type, data]) => ({
-      type,
-      count: data.count,
-      gmv: data.gmv,
-      count_share: (data.count / active_count * 100).toFixed(1) + '%',
-      gmv_share: (data.gmv / total_gmv * 100).toFixed(1) + '%',
-    }));
+      const mixData = Object.entries(typeBuckets).map(([type, data]) => ({
+        type,
+        count: data.count,
+        gmv: data.gmv,
+        count_share: (data.count / active_count * 100).toFixed(1),
+        gmv_share: (data.gmv / total_gmv * 100).toFixed(1),
+      }));
 
-    await base44.asServiceRole.entities.EvidenceTable.create({
-      dataset_id,
-      table_key: 'mix_health_table',
-      data_json: mixData,
-      module_id: 3,
-      row_count: mixData.length,
-    });
-
-    // Store type shares as metrics
-    for (const item of mixData) {
-      await base44.asServiceRole.entities.MetricSnapshot.create({
+      await base44.asServiceRole.entities.EvidenceTable.create({
         dataset_id,
-        metric_key: `${item.type}_share`,
-        value_num: item.gmv / total_gmv,
-        calc_version,
+        table_key: 'mix_health_table',
+        data_json: mixData,
         module_id: 3,
+        row_count: mixData.length,
+      });
+
+      for (const item of mixData) {
+        await createMetric(`${item.type}_share`, item.gmv / total_gmv, 3);
+      }
+    } else {
+      await base44.asServiceRole.entities.EvidenceTable.create({
+        dataset_id,
+        table_key: 'mix_health_table',
+        data_json: [],
+        module_id: 3,
+        row_count: 0,
+        partial: true,
+        notes: 'Publisher type data is unavailable for this dataset.',
       });
     }
 
     // ============ MODULE 5: Approval ============
-    const total_approved = publishers.reduce((sum, p) => sum + (p.approved_revenue || 0), 0);
-    const total_pending = publishers.reduce((sum, p) => sum + (p.pending_revenue || 0), 0);
-    const total_declined = publishers.reduce((sum, p) => sum + (p.declined_revenue || 0), 0);
-    const approval_rate = total_gmv > 0 ? total_approved / total_gmv : 0;
+    if (capabilities.has_approval_breakdown) {
+      const total_approved = publishers.reduce((sum, p) => sum + (p.approved_revenue || 0), 0);
+      const total_pending = publishers.reduce((sum, p) => sum + (p.pending_revenue || 0), 0);
+      const total_declined = publishers.reduce((sum, p) => sum + (p.declined_revenue || 0), 0);
+      const approval_rate = total_gmv > 0 ? total_approved / total_gmv : 0;
 
-    await base44.asServiceRole.entities.MetricSnapshot.create({
-      dataset_id,
-      metric_key: 'approval_rate',
-      value_num: approval_rate,
-      calc_version,
-      module_id: 5,
-    });
+      await createMetric('approval_rate', approval_rate, 5);
+      await createMetric('total_approved_gmv', total_approved, 5);
+      await createMetric('total_pending_gmv', total_pending, 5);
+      await createMetric('total_declined_gmv', total_declined, 5);
 
-    await base44.asServiceRole.entities.MetricSnapshot.create({
-      dataset_id,
-      metric_key: 'total_approved_gmv',
-      value_num: total_approved,
-      calc_version,
-      module_id: 5,
-    });
+      await base44.asServiceRole.entities.EvidenceTable.create({
+        dataset_id,
+        table_key: 'approval_waterfall',
+        data_json: [
+          { name: 'Total GMV', value: total_gmv, label: `$${(total_gmv / 1000).toFixed(0)}K` },
+          { name: 'Approved', value: total_approved, label: `$${(total_approved / 1000).toFixed(0)}K` },
+          { name: 'Pending', value: total_pending, label: `$${(total_pending / 1000).toFixed(0)}K` },
+          { name: 'Declined', value: total_declined, label: `$${(total_declined / 1000).toFixed(0)}K` },
+        ],
+        module_id: 5,
+        row_count: 4,
+      });
 
-    await base44.asServiceRole.entities.MetricSnapshot.create({
-      dataset_id,
-      metric_key: 'total_pending_gmv',
-      value_num: total_pending,
-      calc_version,
-      module_id: 5,
-    });
+      const approvalDetail = publishers
+        .filter(p => (p.total_revenue || 0) > 0)
+        .map(p => ({
+          publisher_name: p.publisher_name || p.publisher_id || 'Unknown',
+          total_revenue: p.total_revenue || 0,
+          approved_revenue: p.approved_revenue || 0,
+          pending_revenue: p.pending_revenue || 0,
+          declined_revenue: p.declined_revenue || 0,
+          approval_rate: (p.total_revenue || 0) > 0 ? (p.approved_revenue || 0) / (p.total_revenue || 0) : 0,
+          decline_rate: (p.total_revenue || 0) > 0 ? (p.declined_revenue || 0) / (p.total_revenue || 0) : 0,
+        }))
+        .sort((a, b) => b.declined_revenue - a.declined_revenue);
 
-    await base44.asServiceRole.entities.MetricSnapshot.create({
-      dataset_id,
-      metric_key: 'total_declined_gmv',
-      value_num: total_declined,
-      calc_version,
-      module_id: 5,
-    });
+      await base44.asServiceRole.entities.EvidenceTable.create({
+        dataset_id,
+        table_key: 'approval_table',
+        data_json: approvalDetail,
+        module_id: 5,
+        row_count: approvalDetail.length,
+      });
+    } else {
+      warnings.push('Approval breakdown was unavailable, so approval charts were marked partial.');
+      await createMetric('approval_rate', 0, 5);
+      await createMetric('total_approved_gmv', 0, 5);
+      await createMetric('total_pending_gmv', 0, 5);
+      await createMetric('total_declined_gmv', 0, 5);
+      await base44.asServiceRole.entities.EvidenceTable.create({
+        dataset_id,
+        table_key: 'approval_waterfall',
+        data_json: [],
+        module_id: 5,
+        row_count: 0,
+        partial: true,
+        notes: 'Approval revenue breakdown is unavailable for this dataset.',
+      });
+      await base44.asServiceRole.entities.EvidenceTable.create({
+        dataset_id,
+        table_key: 'approval_table',
+        data_json: [],
+        module_id: 5,
+        row_count: 0,
+        partial: true,
+        notes: 'Approval detail rows are unavailable for this dataset.',
+      });
+    }
 
-    await base44.asServiceRole.entities.EvidenceTable.create({
-      dataset_id,
-      table_key: 'approval_waterfall',
-      data_json: [
-        { name: 'Total GMV', value: total_gmv, label: `$${(total_gmv / 1000).toFixed(0)}K` },
-        { name: 'Approved', value: total_approved, label: `$${(total_approved / 1000).toFixed(0)}K` },
-        { name: 'Pending', value: total_pending, label: `$${(total_pending / 1000).toFixed(0)}K` },
-        { name: 'Declined', value: total_declined, label: `$${(total_declined / 1000).toFixed(0)}K` },
-      ],
-      module_id: 5,
-      row_count: 4,
-    });
-
-    // Approval detail table - sort by declined revenue descending (top decliners first)
-    const approvalDetail = publishers
-      .filter(p => (p.total_revenue || 0) > 0)
-      .map(p => ({
-        publisher_name: p.publisher_name || p.publisher_id || 'Unknown',
-        total_revenue: p.total_revenue || 0,
-        approved_revenue: p.approved_revenue || 0,
-        pending_revenue: p.pending_revenue || 0,
-        declined_revenue: p.declined_revenue || 0,
-        approval_rate: (p.total_revenue || 0) > 0 ? (p.approved_revenue || 0) / (p.total_revenue || 0) : 0,
-        decline_rate: (p.total_revenue || 0) > 0 ? (p.declined_revenue || 0) / (p.total_revenue || 0) : 0,
-      }))
-      .sort((a, b) => b.declined_revenue - a.declined_revenue);
-
-    await base44.asServiceRole.entities.EvidenceTable.create({
-      dataset_id,
-      table_key: 'approval_table',
-      data_json: approvalDetail,
-      module_id: 5,
-      row_count: approvalDetail.length,
-    });
+    try {
+      await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+        capabilities: {
+          ...capabilities,
+          has_orders: capabilities.has_orders || total_orders > 0,
+          has_commission: capabilities.has_commission || total_commission > 0,
+          has_clicks: capabilities.has_clicks || total_clicks > 0,
+        },
+        processing_warnings: Array.from(new Set(warnings)),
+      });
+    } catch (updateError) {
+      console.warn('Failed to update dataset capabilities after metrics:', updateError);
+    }
 
     // Complete job
     const jobs = await base44.asServiceRole.entities.Job.filter({ dataset_id, job_type: 'compute_metrics' });
@@ -294,7 +277,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    return Response.json({ success: true, calc_version });
+    return Response.json({
+      success: true,
+      calc_version,
+      metrics_summary: {
+        total_publishers,
+        active_publishers: active_count,
+        active_ratio,
+        total_gmv,
+        top10_share,
+        publishers_to_50pct,
+        total_clicks,
+        total_orders,
+        total_commission,
+      },
+      warnings: Array.from(new Set(warnings)),
+    });
 
   } catch (error) {
     console.error('Compute metrics error:', error);

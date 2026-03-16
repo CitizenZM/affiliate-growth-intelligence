@@ -11,6 +11,9 @@ export default function DatasetSelector({ value, onChange }) {
 
   const getStatusDisplay = (dataset) => {
     if (!dataset) return { bg: "bg-slate-50", text: "text-slate-700", label: ds.unknown };
+    if (dataset.status === 'completed' && (dataset.processing_warnings || []).length > 0) {
+      return { bg: "bg-amber-50", text: "text-amber-700", label: 'Partial' };
+    }
     if (dataset.status === 'completed') return { bg: "bg-emerald-50", text: "text-emerald-700", label: ds.completed };
     if (dataset.status === 'error') return { bg: "bg-red-50", text: "text-red-700", label: ds.failed };
     if (dataset.status === 'pending') return { bg: "bg-amber-50", text: "text-amber-700", label: ds.pending };

@@ -54,8 +54,10 @@ export default function ActionPlan() {
   });
 
   const { data: rawItems = [], isLoading } = useQuery({
-    queryKey: ["actionItems"],
-    queryFn: () => base44.entities.ActionItem.list("-created_date", 100),
+    queryKey: ["actionItems", selectedDataset],
+    queryFn: () => base44.entities.ActionItem.filter({ dataset_id: selectedDataset }),
+    enabled: !!selectedDataset,
+    refetchInterval: 3000,
   });
 
   const items = useTranslatedItems(rawItems, ["title", "notes"]);
@@ -69,9 +71,9 @@ export default function ActionPlan() {
   }, [datasets, selectedDataset]);
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.ActionItem.create(data),
+    mutationFn: (data) => base44.entities.ActionItem.create({ ...data, dataset_id: selectedDataset }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["actionItems"] });
+      queryClient.invalidateQueries({ queryKey: ["actionItems", selectedDataset] });
       setDialogOpen(false);
       setNewItem({ title: "", workstream: "other", priority: "medium", owner: "", due_date: "", notes: "" });
     },
@@ -79,7 +81,7 @@ export default function ActionPlan() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.ActionItem.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["actionItems"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["actionItems", selectedDataset] }),
   });
 
   const { language } = useLanguage();
@@ -141,13 +143,17 @@ Return a JSON array of action items.`,
               }
             }
           }
-        }
+        },
+        dataset_id: selectedDataset,
+        language,
+        findingsSummary,
       });
 
       const aiItems = result?.items || [];
       for (const ai of aiItems) {
         const finding = findingsSummary[ai.finding_index] || {};
         await base44.entities.ActionItem.create({
+          dataset_id: selectedDataset,
           title: ai.title,
           workstream: ai.workstream || 'other',
           priority: ai.priority || 'medium',
@@ -163,7 +169,7 @@ Return a JSON array of action items.`,
       return aiItems.length;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["actionItems"] });
+      queryClient.invalidateQueries({ queryKey: ["actionItems", selectedDataset] });
       setGeneratingActions(false);
     },
     onError: () => {

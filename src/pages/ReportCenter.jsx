@@ -9,8 +9,33 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/components/LanguageContext";
 import ReactMarkdown from "react-markdown";
+import { useTranslatedReportSections } from "@/components/dashboard/useTranslatedText";
 
 const chapterStatuses = ["ready","ready","ready","ready","ready","ready","ready","ready","partial","partial","ready"];
+
+function normalizeFinding(finding) {
+  if (!finding) return null;
+  if (typeof finding === "string") {
+    return {
+      type: "note",
+      title: finding,
+      trigger: "",
+      action: "",
+      owner: "",
+      deadline: "",
+      linkPage: "",
+    };
+  }
+  return {
+    type: finding.type || "note",
+    title: finding.title || finding.text || "Finding",
+    trigger: finding.trigger || "",
+    action: finding.action || "",
+    owner: finding.owner || "",
+    deadline: finding.deadline || "",
+    linkPage: finding.linkPage || "",
+  };
+}
 
 export default function ReportCenter() {
   const [selectedChapter, setSelectedChapter] = useState(0);
@@ -40,6 +65,26 @@ export default function ReportCenter() {
     warning: { bar: "bg-amber-500",   bg: "bg-amber-50 border-amber-200",    text: "text-amber-800",   icon: AlertTriangle },
     bad:     { bar: "bg-red-500",     bg: "bg-red-50 border-red-200",        text: "text-red-800",     icon: AlertTriangle },
   };
+  const findingStyles = {
+    risk: {
+      card: "bg-red-50 border-red-200",
+      badge: "bg-red-100 text-red-700 border-red-200",
+      title: "text-red-900",
+      body: "text-red-800",
+    },
+    opportunity: {
+      card: "bg-blue-50 border-blue-200",
+      badge: "bg-blue-100 text-blue-700 border-blue-200",
+      title: "text-blue-900",
+      body: "text-blue-800",
+    },
+    note: {
+      card: "bg-slate-50 border-slate-200",
+      badge: "bg-slate-100 text-slate-700 border-slate-200",
+      title: "text-slate-900",
+      body: "text-slate-700",
+    },
+  };
 
   const { data: sections = [], isLoading, refetch } = useQuery({
     queryKey: ['report-sections', datasetId],
@@ -47,7 +92,8 @@ export default function ReportCenter() {
     enabled: !!datasetId,
   });
 
-  const currentSection = sections.find(s => s.section_id === selectedChapter);
+  const translatedSections = useTranslatedReportSections(sections);
+  const currentSection = translatedSections.find(s => s.section_id === selectedChapter);
 
   const handleGenerate = async () => {
     if (!datasetId) { toast.error(rc.toasts.selectDataset); return; }
@@ -141,7 +187,7 @@ export default function ReportCenter() {
             disabled={!datasetId}
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            {language === 'zh' ? '刷新' : 'Refresh'}
+            {rc.refresh || (language === 'zh' ? '刷新' : 'Refresh')}
           </Button>
           <Button
             size="sm"
@@ -196,7 +242,7 @@ export default function ReportCenter() {
               {downloading === 'PDF'
                 ? <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
                 : <Download className="w-4 h-4 text-blue-500" />}
-              <span className="text-xs font-medium text-slate-700">Download PDF</span>
+              <span className="text-xs font-medium text-slate-700">{rc.downloads?.pdf || "Download PDF"}</span>
             </button>
             <button
               onClick={downloadMarkdown}
@@ -206,7 +252,7 @@ export default function ReportCenter() {
               {downloading === 'MD'
                 ? <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
                 : <Download className="w-4 h-4 text-slate-400" />}
-              <span className="text-xs font-medium text-slate-700">Download Markdown</span>
+              <span className="text-xs font-medium text-slate-700">{rc.downloads?.markdown || "Download Markdown"}</span>
             </button>
           </div>
         </div>
@@ -227,7 +273,7 @@ export default function ReportCenter() {
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">
-                      Chapter {selectedChapter}
+                      {rc.chapterLabel || "Chapter"} {selectedChapter}
                     </span>
                     <Badge className="bg-white/20 text-white border-white/30 text-[10px]">
                       {statusStyles[chapters[selectedChapter].status].label}
@@ -243,7 +289,7 @@ export default function ReportCenter() {
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-24">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
-                  <p className="text-sm text-slate-400">{language === 'zh' ? '加载中...' : 'Loading...'}</p>
+                  <p className="text-sm text-slate-400">{rc.loading || (language === 'zh' ? '加载中...' : 'Loading...')}</p>
                 </div>
               ) : currentSection ? (
                 <div className="space-y-6">
@@ -300,22 +346,59 @@ export default function ReportCenter() {
 
                   {/* Key findings */}
                   {currentSection.key_findings && currentSection.key_findings.length > 0 && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+                    <div className="rounded-xl border border-slate-200 p-5 bg-slate-50/60">
                       <div className="flex items-center gap-2 mb-3">
-                        <AlertTriangle className="w-4 h-4 text-amber-600" />
-                        <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">{rc.keyFindings}</p>
+                        <AlertTriangle className="w-4 h-4 text-slate-600" />
+                        <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">{rc.keyFindings}</p>
                       </div>
-                      <div className="space-y-2">
-                        {currentSection.key_findings.map((finding, idx) => (
-                          <div key={idx} className="flex items-start gap-2">
-                            <span className="w-5 h-5 rounded-full bg-amber-200 text-amber-800 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                              {idx + 1}
-                            </span>
-                            <p className="text-sm text-amber-900 leading-relaxed">
-                              {typeof finding === 'string' ? finding : finding.text || JSON.stringify(finding)}
-                            </p>
-                          </div>
-                        ))}
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                        {currentSection.key_findings.map((rawFinding, idx) => {
+                          const finding = normalizeFinding(rawFinding);
+                          if (!finding) return null;
+                          const fs = findingStyles[finding.type] || findingStyles.note;
+                          return (
+                            <div key={idx} className={`rounded-xl border p-4 ${fs.card}`}>
+                              <div className="flex items-start justify-between gap-3 mb-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-6 h-6 rounded-full bg-white/80 text-[11px] font-bold flex items-center justify-center text-slate-700 border border-white/70">
+                                    {idx + 1}
+                                  </span>
+                                  <Badge className={`${fs.badge} text-[10px] capitalize`}>
+                                    {finding.type === "risk" ? t('shared.risk') : finding.type === "opportunity" ? t('shared.opportunity') : t('shared.note')}
+                                  </Badge>
+                                </div>
+                                {finding.linkPage && (
+                                  <span className="text-[11px] text-slate-500">{finding.linkPage}</span>
+                                )}
+                              </div>
+                              <h4 className={`text-sm font-semibold mb-2 ${fs.title}`}>{finding.title}</h4>
+                              {finding.trigger && (
+                                <p className={`text-sm leading-relaxed mb-2 ${fs.body}`}>
+                                  <span className="font-medium">{rc.findingLabels?.trigger || t('shared.trigger')}:</span> {finding.trigger}
+                                </p>
+                              )}
+                              {finding.action && (
+                                <p className={`text-sm leading-relaxed mb-3 ${fs.body}`}>
+                                  <span className="font-medium">{rc.findingLabels?.action || t('shared.action')}:</span> {finding.action}
+                                </p>
+                              )}
+                              {(finding.owner || finding.deadline) && (
+                                <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
+                                  {finding.owner && (
+                                    <span className="px-2 py-1 rounded-full bg-white border border-slate-200">
+                                      {rc.findingLabels?.owner || t('shared.owner')}: {finding.owner}
+                                    </span>
+                                  )}
+                                  {finding.deadline && (
+                                    <span className="px-2 py-1 rounded-full bg-white border border-slate-200">
+                                      {rc.findingLabels?.due || t('shared.due')}: {finding.deadline}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

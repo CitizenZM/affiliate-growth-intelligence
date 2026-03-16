@@ -4,17 +4,71 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useLanguage } from "@/components/LanguageContext";
 
+function normalizeNotes(notes) {
+  return (Array.isArray(notes) ? notes : [])
+    .map((note, index) => {
+      if (typeof note === "string") {
+        return {
+          title: index === 0 ? "Notes" : `Notes ${index + 1}`,
+          items: [{ label: "Detail", value: note }],
+        };
+      }
+
+      if (!note || typeof note !== "object") {
+        return null;
+      }
+
+      const title = note.title || `Notes ${index + 1}`;
+      if (Array.isArray(note.items)) {
+        return {
+          title,
+          items: note.items
+            .filter(Boolean)
+            .map((item, itemIndex) => {
+              if (typeof item === "string") {
+                return { label: `Item ${itemIndex + 1}`, value: item };
+              }
+
+              return {
+                label: item?.label || `Item ${itemIndex + 1}`,
+                value: item?.value ?? "",
+              };
+            }),
+        };
+      }
+
+      if ("value" in note || "label" in note) {
+        return {
+          title,
+          items: [{ label: note.label || "Detail", value: note.value ?? "" }],
+        };
+      }
+
+      return {
+        title,
+        items: Object.entries(note)
+          .filter(([key]) => key !== "title")
+          .map(([key, value]) => ({
+            label: key,
+            value: typeof value === "string" ? value : JSON.stringify(value),
+          })),
+      };
+    })
+    .filter((note) => note && note.items.length > 0);
+}
+
 export default function DerivationPanel({ notes = [] }) {
   const { t } = useLanguage();
+  const normalizedNotes = normalizeNotes(notes);
   const handleCopy = (format) => {
     const text = format === "json"
-      ? JSON.stringify(notes, null, 2)
-      : notes.map(n => `## ${n.title}\n${n.items.map(i => `- **${i.label}**: ${i.value}`).join("\n")}`).join("\n\n");
+      ? JSON.stringify(normalizedNotes, null, 2)
+      : normalizedNotes.map(n => `## ${n.title}\n${n.items.map(i => `- **${i.label}**: ${i.value}`).join("\n")}`).join("\n\n");
     navigator.clipboard.writeText(text);
     toast.success(t('shared.copied'));
   };
 
-  if (!notes.length) return null;
+  if (!normalizedNotes.length) return null;
 
   return (
     <div className="bg-slate-50/50 rounded-xl border border-slate-200 p-4">
@@ -33,7 +87,7 @@ export default function DerivationPanel({ notes = [] }) {
         </div>
       </div>
       <div className="space-y-3">
-        {notes.map((section, i) => (
+        {normalizedNotes.map((section, i) => (
           <div key={i}>
             <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{section.title}</p>
             <div className="space-y-1">

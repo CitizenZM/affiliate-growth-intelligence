@@ -7,7 +7,6 @@ import DatasetSelector from "../components/dashboard/DatasetSelector";
 import DataLoader from "../components/dashboard/DataLoader";
 import { Button } from "@/components/ui/button";
 import { FileText, ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
 import { useLanguage } from "@/components/LanguageContext";
 
 export default function Overview() {
@@ -34,7 +33,7 @@ export default function Overview() {
       </div>
 
       <DataLoader datasetId={selectedDataset}>
-        {({ getMetric, getTable, getSection }) => {
+        {({ getMetric, getTable, getSection, isModuleAvailable, warnings }) => {
           const totalPubs = getMetric('total_publishers');
           const activePubs = getMetric('active_publishers');
           const activeRatio = getMetric('active_ratio');
@@ -43,6 +42,10 @@ export default function Overview() {
           const top10Share = getMetric('top10_share');
           const approvalRate = getMetric('approval_rate');
           const declinedGMV = getMetric('total_declined_gmv');
+          const mixAvailable = isModuleAvailable('mix');
+          const approvalAvailable = isModuleAvailable('approval');
+          const mixWarning = warnings.find((warning) => warning.toLowerCase().includes('publisher type'));
+          const approvalWarning = warnings.find((warning) => warning.toLowerCase().includes('approval'));
 
           // Get publisher type shares
           const contentShare = getMetric('content_share') || 0;
@@ -51,7 +54,7 @@ export default function Overview() {
           // Build KPIs from real data
           const kpis = [
             {
-              title: "Active Ratio",
+              title: ov.kpis?.activeRatio || "Active Ratio",
               value: `${(activeRatio * 100).toFixed(0)}%`,
               target: "40%",
               status: activeRatio >= 0.4 ? "green" : activeRatio >= 0.3 ? "yellow" : "red",
@@ -62,27 +65,27 @@ export default function Overview() {
               ],
             },
             {
-              title: `Content GMV ${t('concentration.cols.pct') === 'pct' ? 'Share' : t('concentration.cols.pct')}`,
-              value: `${(contentShare * 100).toFixed(0)}%`,
+              title: ov.kpis?.contentShare || `Content GMV ${t('concentration.cols.pct') === 'pct' ? 'Share' : t('concentration.cols.pct')}`,
+              value: mixAvailable ? `${(contentShare * 100).toFixed(0)}%` : "--",
               target: "30%",
-              status: contentShare >= 0.3 ? "green" : contentShare >= 0.2 ? "yellow" : "red",
+              status: mixAvailable ? (contentShare >= 0.3 ? "green" : contentShare >= 0.2 ? "yellow" : "red") : "neutral",
               evidenceRows: [
-                { label: ov.labels.contentGmv, value: `$${((contentShare * totalGMV) / 1000).toFixed(0)}K` },
+                { label: ov.labels.contentGmv, value: mixAvailable ? `$${((contentShare * totalGMV) / 1000).toFixed(0)}K` : (mixWarning || "Publisher type data unavailable") },
                 { label: ov.labels.totalGmv, value: `$${(totalGMV / 1000).toFixed(0)}K` },
               ],
             },
             {
-              title: `Deal GMV ${t('concentration.cols.pct') === 'pct' ? 'Share' : t('concentration.cols.pct')}`,
-              value: `${(dealShare * 100).toFixed(0)}%`,
+              title: ov.kpis?.dealShare || `Deal GMV ${t('concentration.cols.pct') === 'pct' ? 'Share' : t('concentration.cols.pct')}`,
+              value: mixAvailable ? `${(dealShare * 100).toFixed(0)}%` : "--",
               target: "≤35%",
-              status: dealShare <= 0.35 ? "green" : dealShare <= 0.45 ? "yellow" : "red",
+              status: mixAvailable ? (dealShare <= 0.35 ? "green" : dealShare <= 0.45 ? "yellow" : "red") : "neutral",
               evidenceRows: [
-                { label: ov.labels.dealGmv, value: `$${((dealShare * totalGMV) / 1000).toFixed(0)}K` },
+                { label: ov.labels.dealGmv, value: mixAvailable ? `$${((dealShare * totalGMV) / 1000).toFixed(0)}K` : (mixWarning || "Publisher type data unavailable") },
                 { label: ov.labels.totalGmv, value: `$${(totalGMV / 1000).toFixed(0)}K` },
               ],
             },
             {
-              title: "GMV/Active Publisher",
+              title: ov.kpis?.gmvPerActive || "GMV/Active Publisher",
               value: `$${gmvPerActive.toFixed(0)}`,
               target: "$4,000",
               status: gmvPerActive >= 4000 ? "green" : gmvPerActive >= 3000 ? "yellow" : "red",
@@ -92,7 +95,7 @@ export default function Overview() {
               ],
             },
             {
-              title: "Top10 GMV Share",
+              title: ov.kpis?.top10Share || "Top10 GMV Share",
               value: `${(top10Share * 100).toFixed(0)}%`,
               target: "≤50%",
               status: top10Share <= 0.5 ? "green" : top10Share <= 0.6 ? "yellow" : "red",
@@ -102,13 +105,13 @@ export default function Overview() {
               ],
             },
             {
-              title: "Approval Rate",
-              value: `${(approvalRate * 100).toFixed(0)}%`,
+              title: ov.kpis?.approvalRate || "Approval Rate",
+              value: approvalAvailable ? `${(approvalRate * 100).toFixed(0)}%` : "--",
               target: "≥85%",
-              status: approvalRate >= 0.85 ? "green" : approvalRate >= 0.7 ? "yellow" : "red",
+              status: approvalAvailable ? (approvalRate >= 0.85 ? "green" : approvalRate >= 0.7 ? "yellow" : "red") : "neutral",
               evidenceRows: [
-                { label: "Approval Rate", value: `${(approvalRate * 100).toFixed(1)}%` },
-                { label: "Declined GMV", value: `$${(declinedGMV / 1000).toFixed(0)}K` },
+                { label: "Approval Rate", value: approvalAvailable ? `${(approvalRate * 100).toFixed(1)}%` : (approvalWarning || "Approval split unavailable") },
+                { label: "Declined GMV", value: approvalAvailable ? `$${(declinedGMV / 1000).toFixed(0)}K` : "--" },
               ],
             },
           ];
@@ -133,33 +136,33 @@ export default function Overview() {
               deadline: "Q2 2026",
               linkPage: "Concentration",
             },
-            {
+            mixAvailable ? {
               title: r.dealTitle,
               trigger: `Deal GMV ${isEn ? 'share' : '占比'} ${(dealShare * 100).toFixed(0)}%${dealShare > 0.35 ? (isEn ? ', exceeds 35% healthy limit' : '，超出 35% 健康上限') : ''}. ${isEn ? 'Discount dependency and margin erosion risk.' : '存在折扣依赖与利润侵蚀风险'}`,
               action: r.dealAction,
               owner: r.dealOwner,
               deadline: "Q1 2026",
               linkPage: "MixHealth",
-            },
-            {
+            } : null,
+            approvalAvailable ? {
               title: r.approvalTitle,
               trigger: `${isEn ? 'Overall Approval Rate' : '整体 Approval Rate'} ${(approvalRate * 100).toFixed(0)}%${approvalRate < 0.85 ? (isEn ? ', below 85% healthy line' : '，低于 85% 健康线') : ''}. ${isEn ? 'Declined concentrated at' : 'Declined 集中在'} ${topDeclined.map(p => p.publisher_name).join(', ')}`,
               action: r.approvalAction,
               owner: r.approvalOwner,
               deadline: "2026-03",
               linkPage: "Approval",
-            },
-          ];
+            } : null,
+          ].filter(Boolean);
 
           const opportunities = [
-            {
+            mixAvailable ? {
               title: op.contentTitle,
               trigger: `Content GMV ${isEn ? 'only' : '仅'} ${(contentShare * 100).toFixed(0)}%, ${isEn ? 'but Content Publishers show above-average AOV and Approval Rate' : '但 Content Publisher 的 AOV 和 Approval Rate 均高于平均'}`,
               action: op.contentAction,
               owner: op.contentOwner,
               deadline: "Q2 2026",
               linkPage: "Activation",
-            },
+            } : null,
             {
               title: op.activationTitle,
               trigger: `${isEn ? 'Current active rate' : '当前活跃率'} ${(activeRatio * 100).toFixed(0)}%, ${totalPubs - activePubs} ${isEn ? 'publishers have no revenue' : '个 Publisher 未产生收入'}`,
@@ -176,7 +179,7 @@ export default function Overview() {
               deadline: "2026-04",
               linkPage: "Efficiency",
             },
-          ];
+          ].filter(Boolean);
 
           return (
             <>

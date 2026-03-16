@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     }
 
     const { dataset_id, section_ids } = await req.json();
-    const sectionsToGenerate = section_ids || [0, 1, 2, 3, 5]; // Default: core modules
+    const requestedSections = section_ids || [0, 1, 2, 3, 5]; // Default: core modules
 
     // Create job
     await base44.asServiceRole.entities.Job.create({
@@ -26,12 +26,34 @@ Deno.serve(async (req) => {
     // Get all metrics and evidence tables
     const metrics = await base44.asServiceRole.entities.MetricSnapshot.filter({ dataset_id });
     const evidenceTables = await base44.asServiceRole.entities.EvidenceTable.filter({ dataset_id });
+    const dataset = await base44.asServiceRole.entities.DataUpload.get(dataset_id);
+    const capabilities = dataset?.capabilities || {};
+    const datasetWarnings = Array.isArray(dataset?.processing_warnings) ? dataset.processing_warnings : [];
 
     // Build context for AI
     const metricsContext = metrics.map(m => `${m.metric_key}: ${m.value_num}`).join('\n');
     const evidenceContext = evidenceTables.map(t => 
       `${t.table_key}:\n${JSON.stringify(t.data_json, null, 2)}`
     ).join('\n\n');
+    const brandContext = dataset?.website_scrape_data
+      ? JSON.stringify(dataset.website_scrape_data, null, 2)
+      : 'No website brand context available.';
+
+    const sectionSupport = {
+      0: true,
+      1: true,
+      2: true,
+      3: !!capabilities.has_publisher_type,
+      4: !!capabilities.has_commission,
+      5: !!capabilities.has_approval_breakdown,
+      6: !!capabilities.has_publisher_type,
+      7: true,
+      8: true,
+      9: true,
+      10: true,
+    };
+    const sectionsToGenerate = requestedSections.filter((sectionId) => sectionSupport[sectionId] !== false);
+    const unsupportedSections = requestedSections.filter((sectionId) => sectionSupport[sectionId] === false);
 
     const sectionConfigs = {
       0: {
@@ -95,19 +117,27 @@ Deno.serve(async (req) => {
         processing_step: `AI 生成章节 ${idx + 1}/${totalSections}...`,
       });
 
-      const systemPrompt = `You are an expert affiliate marketing analyst. Analyze the provided metrics and evidence tables to generate insights.
+      const systemPrompt = `You are an expert affiliate marketing analyst. Analyze the provided metrics, evidence tables, and brand context to generate insights.
 
 CRITICAL RULES:
 1. NEVER invent numbers - only use values from the metrics and evidence tables provided
 2. Reference specific metrics by their exact names (e.g., "active_ratio: 0.32")
 3. Keep conclusions data-driven and actionable
 4. Output must be in Chinese (Simplified)
+5. If brand context exists, connect recommendations to the brand's products, positioning, and promotions without inventing business facts
+6. Respect data limitations and explicitly mention when a conclusion is based on incomplete source data
 
 Metrics:
 ${metricsContext}
 
 Evidence Tables:
-${evidenceContext}`;
+${evidenceContext}
+
+Dataset Warnings:
+${datasetWarnings.join('\n') || 'None'}
+
+Brand Context:
+${brandContext}`;
 
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -147,20 +177,24 @@ ${evidenceContext}`;
       });
 
       generatedSections.push(sectionId);
+    }
 
-      // Update sections_ready array
-      try {
-        const datasets = await base44.asServiceRole.entities.DataUpload.filter({ id: dataset_id });
-        if (datasets.length > 0) {
-          const currentDataset = datasets[0];
-          const updatedSections = [...(currentDataset.sections_ready || []), sectionId];
-          await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
-            sections_ready: updatedSections,
-          });
-        }
-      } catch (err) {
-        console.error('Failed to update sections_ready:', err);
-      }
+    for (const sectionId of unsupportedSections) {
+      const config = sectionConfigs[sectionId];
+      if (!config) continue;
+      await base44.asServiceRole.entities.ReportSection.create({
+        dataset_id,
+        section_id: sectionId,
+        title: config.title,
+        content_md: '当前数据源缺少支撑该章节所需字段，因此该模块被标记为部分可用。',
+        conclusion: sectionId === 5
+          ? '审批拆分数据缺失，无法生成交易质量分析。'
+          : '当前数据不足以支持该章节的完整分析。',
+        conclusion_status: 'neutral',
+        key_findings: [],
+        derivation_notes: datasetWarnings,
+        ai_generated: false,
+      });
     }
 
     // Complete job
@@ -174,9 +208,18 @@ ${evidenceContext}`;
       });
     }
 
+    try {
+      await base44.asServiceRole.entities.DataUpload.update(dataset_id, {
+        sections_ready: [...generatedSections, ...unsupportedSections],
+      });
+    } catch (updateError) {
+      console.error('Failed to update sections_ready:', updateError);
+    }
+
     return Response.json({ 
       success: true, 
       generated_sections: generatedSections,
+      skipped_sections: unsupportedSections,
     });
 
   } catch (error) {

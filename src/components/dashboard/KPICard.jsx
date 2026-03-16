@@ -10,11 +10,13 @@ function StatusLabel({ status }) {
     green: isEn ? "Healthy" : "健康",
     yellow: isEn ? "Watch" : "关注",
     red: isEn ? "Risk" : "风险",
+    neutral: isEn ? "Partial" : "部分",
   };
   const colors = {
     green: { bg: "bg-emerald-50", dot: "bg-emerald-500", text: "text-emerald-700", border: "border-emerald-200" },
     yellow: { bg: "bg-amber-50", dot: "bg-amber-500", text: "text-amber-700", border: "border-amber-200" },
     red: { bg: "bg-red-50", dot: "bg-red-500", text: "text-red-700", border: "border-red-200" },
+    neutral: { bg: "bg-slate-100", dot: "bg-slate-400", text: "text-slate-700", border: "border-slate-200" },
   }[status];
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${colors.bg} ${colors.text} ${colors.border} border`}>
@@ -28,6 +30,7 @@ const statusColors = {
   green: { bg: "bg-emerald-50", dot: "bg-emerald-500", text: "text-emerald-700", border: "border-emerald-200" },
   yellow: { bg: "bg-amber-50", dot: "bg-amber-500", text: "text-amber-700", border: "border-amber-200" },
   red: { bg: "bg-red-50", dot: "bg-red-500", text: "text-red-700", border: "border-red-200" },
+  neutral: { bg: "bg-slate-100", dot: "bg-slate-400", text: "text-slate-700", border: "border-slate-200" },
 };
 
 

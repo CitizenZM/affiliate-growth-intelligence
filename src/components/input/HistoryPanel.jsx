@@ -41,7 +41,9 @@ export default function HistoryPanel({ onReuse }) {
     <ScrollArea className="h-[500px]">
       <div className="space-y-2 pr-4">
         {history.map((item, idx) => {
-          const status = statusConfig[item.status] || statusConfig.pending;
+          const status = (item.status === 'completed' && (item.processing_warnings || []).length > 0)
+            ? { icon: AlertCircle, color: "text-amber-600", bg: "bg-amber-50", label: "部分完成" }
+            : (statusConfig[item.status] || statusConfig.pending);
           const Icon = status.icon;
           
           return (
