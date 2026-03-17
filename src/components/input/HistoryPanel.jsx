@@ -18,6 +18,7 @@ export default function HistoryPanel({ onReuse }) {
   const { data: history = [], isLoading } = useQuery({
     queryKey: ['upload-history'],
     queryFn: () => base44.entities.DataUpload.list('-created_date', 20),
+    refetchInterval: 3000,
   });
 
   if (isLoading) {

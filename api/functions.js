@@ -19,10 +19,38 @@ export default async function handler(req, res) {
     const db = await loadDb();
 
     if (name === "processDataset") {
-      const result = await runDatasetWorkflow(db, payload, async () => {
+      try {
+        const result = await runDatasetWorkflow(db, payload, async () => {
+          await saveDb(db);
+        });
+        return res.status(200).json({ data: result });
+      } catch (error) {
+        const datasetIndex = db.DataUpload.findIndex((item) => item.id === payload.dataset_id);
+        if (datasetIndex !== -1) {
+          db.DataUpload[datasetIndex] = {
+            ...db.DataUpload[datasetIndex],
+            status: "error",
+            processing_step: error.message || "Processing failed",
+            processing_warnings: [
+              ...(db.DataUpload[datasetIndex].processing_warnings || []),
+              error.message || "Processing failed",
+            ],
+            updated_date: new Date().toISOString(),
+          };
+        }
+        db.Job = (db.Job || []).map((job) =>
+          job.dataset_id === payload.dataset_id
+            ? {
+                ...job,
+                status: "error",
+                stage: "failed",
+                updated_date: new Date().toISOString(),
+              }
+            : job
+        );
         await saveDb(db);
-      });
-      return res.status(200).json({ data: result });
+        return res.status(500).json({ error: error.message });
+      }
     }
 
     if (name === "aiGenerateSections") {
@@ -39,6 +67,7 @@ export default async function handler(req, res) {
         evidenceTables: db.EvidenceTable.filter((item) => item.dataset_id === dataset.id),
         warnings: dataset.processing_warnings || [],
         sectionIds,
+        language: payload.language || "en",
       });
       db.ReportSection.push(...result.sections);
       const datasetIndex = db.DataUpload.findIndex((item) => item.id === dataset.id);

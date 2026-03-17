@@ -9,6 +9,26 @@ export default function DataLoader({
   emptyMessage = "暂无数据",
   loadingMessage = "加载中..."
 }) {
+  const { data: dataset = null, isLoading: datasetLoading } = useQuery({
+    queryKey: ['dataset', datasetId],
+    queryFn: async () => {
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('数据加载超时（>10秒），请检查数据处理状态或刷新页面')), 10000)
+      );
+      const dataPromise = base44.entities.DataUpload.get(datasetId);
+      return Promise.race([dataPromise, timeoutPromise]);
+    },
+    enabled: !!datasetId,
+    refetchInterval: (query) => {
+      const ds = query.state.data;
+      return !ds || ds.status === 'processing' ? 2000 : false;
+    },
+    retry: 1,
+  });
+
+  const isProcessing = !dataset || dataset.status === 'processing';
+  const pollInterval = isProcessing ? 3000 : false;
+
   const { data: metrics = [], isLoading: metricsLoading, error: metricsError } = useQuery({
     queryKey: ['metrics', datasetId],
     queryFn: async () => {
@@ -19,7 +39,7 @@ export default function DataLoader({
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!datasetId,
-    refetchInterval: 10000,
+    refetchInterval: pollInterval,
     retry: 1,
   });
 
@@ -33,7 +53,7 @@ export default function DataLoader({
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!datasetId,
-    refetchInterval: 10000,
+    refetchInterval: pollInterval,
     retry: 1,
   });
 
@@ -47,7 +67,7 @@ export default function DataLoader({
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!datasetId,
-    refetchInterval: 10000,
+    refetchInterval: pollInterval,
     retry: 1,
   });
 
@@ -61,21 +81,7 @@ export default function DataLoader({
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!datasetId,
-    refetchInterval: 10000,
-    retry: 1,
-  });
-
-  const { data: dataset = null, isLoading: datasetLoading } = useQuery({
-    queryKey: ['dataset', datasetId],
-    queryFn: async () => {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('数据加载超时（>10秒），请检查数据处理状态或刷新页面')), 10000)
-      );
-      const dataPromise = base44.entities.DataUpload.get(datasetId);
-      return Promise.race([dataPromise, timeoutPromise]);
-    },
-    enabled: !!datasetId,
-    refetchInterval: 10000,
+    refetchInterval: pollInterval,
     retry: 1,
   });
 
@@ -86,6 +92,32 @@ export default function DataLoader({
       <div className="flex flex-col items-center justify-center py-12">
         <AlertCircle className="w-12 h-12 text-slate-300 mb-3" />
         <p className="text-sm text-slate-500">{emptyMessage}</p>
+      </div>
+    );
+  }
+
+  if (dataset?.status === "processing") {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <p className="text-sm font-medium text-slate-700">{dataset.processing_step || "处理中..."}</p>
+        <div className="w-full max-w-md h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-blue-600 transition-all duration-500"
+            style={{ width: `${dataset.processing_progress || 0}%` }}
+          />
+        </div>
+        <p className="text-xs text-slate-500">{dataset.processing_progress || 0}%</p>
+      </div>
+    );
+  }
+
+  if (dataset?.status === "error") {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertCircle className="w-12 h-12 text-red-300 mb-3" />
+        <p className="text-sm font-medium text-red-600">数据处理失败</p>
+        <p className="text-xs text-slate-500 mt-1">{dataset.processing_step || "请返回上传页重新提交，或检查字段映射。"}</p>
       </div>
     );
   }

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Sparkles, Loader2, Database } from "lucide-react";
 import { useLanguage } from "@/components/LanguageContext";
 import { useTranslatedItems } from "@/components/dashboard/useTranslatedText";
+import { getActiveDatasetId, setActiveDatasetId } from "@/lib/activeDataset";
 
 export default function Dashboard() {
   const [selectedDatasetId, setSelectedDatasetId] = useState(null);
@@ -18,7 +19,6 @@ export default function Dashboard() {
   const db = t('overview');
   const isEn = t('nav.overview') === 'Overview';
 
-  // Get all datasets with timeout
   const { data: datasets = [], isLoading: datasetsLoading } = useQuery({
     queryKey: ['datasets'],
     queryFn: async () => {
@@ -28,11 +28,16 @@ export default function Dashboard() {
       const dataPromise = base44.entities.DataUpload.list('-created_date', 50);
       return Promise.race([dataPromise, timeoutPromise]);
     },
-    refetchInterval: 10000,
+    refetchInterval: (query) => {
+      const data = query.state.data || [];
+      return data.some((d) => d.status === 'processing') ? 3000 : false;
+    },
     retry: 1,
   });
 
-  // Get metrics for selected dataset with timeout
+  const selectedDataset = datasets.find((d) => d.id === selectedDatasetId) || null;
+  const selectedIsProcessing = !selectedDataset || selectedDataset.status === 'processing';
+
   const { data: metrics = [], isLoading: metricsLoading } = useQuery({
     queryKey: ['metrics', selectedDatasetId],
     queryFn: async () => {
@@ -43,11 +48,10 @@ export default function Dashboard() {
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!selectedDatasetId,
-    refetchInterval: 10000,
+    refetchInterval: selectedIsProcessing ? 3000 : false,
     retry: 1,
   });
 
-  // Get report sections for risks/opportunities with timeout
   const { data: sections = [] } = useQuery({
     queryKey: ['sections', selectedDatasetId],
     queryFn: async () => {
@@ -58,25 +62,22 @@ export default function Dashboard() {
       return Promise.race([dataPromise, timeoutPromise]);
     },
     enabled: !!selectedDatasetId,
-    refetchInterval: 10000,
+    refetchInterval: selectedIsProcessing ? 3000 : false,
     retry: 1,
   });
 
-  // Auto-select latest completed dataset
+  // Auto-select active dataset or latest dataset
   React.useEffect(() => {
-    if (datasets.length > 0) {
-      const latest = datasets.find(d => d.status === 'completed');
-      if (latest && latest.id !== selectedDatasetId) {
-        setSelectedDatasetId(latest.id);
-      } else if (!selectedDatasetId && datasets[0]) {
-        setSelectedDatasetId(datasets[0].id);
-      }
+    if (!datasets.length) return;
+    const activeId = getActiveDatasetId();
+    const activeDataset = datasets.find((dataset) => dataset.id === activeId);
+    const fallback = activeDataset || datasets[0];
+    if ((!selectedDatasetId || !datasets.some((dataset) => dataset.id === selectedDatasetId)) && fallback) {
+      setSelectedDatasetId(fallback.id);
     }
-  }, [datasets]);
+  }, [datasets, selectedDatasetId]);
 
-  // Build KPIs from metrics
   const getMetric = (key) => metrics.find(m => m.metric_key === key)?.value_num || 0;
-  const selectedDataset = datasets.find((d) => d.id === selectedDatasetId) || null;
   const brandContext = selectedDataset?.website_scrape_data;
   const warnings = selectedDataset?.processing_warnings || [];
   const hasPartialData = warnings.length > 0;
@@ -127,13 +128,16 @@ export default function Dashboard() {
     },
   ];
 
-  // Extract risks and opportunities from sections
+  const seenRisk = new Set();
   const risks = sections
     .flatMap(s => (s.key_findings || []).filter(f => typeof f === 'object' && f.type === 'risk'))
+    .filter(f => { const k = String(f.title || ""); if (seenRisk.has(k)) return false; seenRisk.add(k); return true; })
     .slice(0, 3);
 
+  const seenOpp = new Set();
   const opportunities = sections
     .flatMap(s => (s.key_findings || []).filter(f => typeof f === 'object' && f.type === 'opportunity'))
+    .filter(f => { const k = String(f.title || ""); if (seenOpp.has(k)) return false; seenOpp.add(k); return true; })
     .slice(0, 3);
   const translatedRisks = useTranslatedItems(risks, ["title", "trigger", "action", "owner", "deadline"]);
   const translatedOpportunities = useTranslatedItems(opportunities, ["title", "trigger", "action", "owner", "deadline"]);
@@ -176,7 +180,10 @@ export default function Dashboard() {
               {t('shared.partialDataset')}
             </div>
           )}
-          <Select value={selectedDatasetId || ''} onValueChange={setSelectedDatasetId}>
+          <Select value={selectedDatasetId || ''} onValueChange={(nextValue) => {
+            setActiveDatasetId(nextValue);
+            setSelectedDatasetId(nextValue);
+          }}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder={db.placeholders?.selectDataset || (isEn ? "Select Dataset" : "选择数据集")} />
             </SelectTrigger>
@@ -251,8 +258,13 @@ export default function Dashboard() {
             <div className="bg-white rounded-2xl border border-slate-200 p-5">
               <div className="flex items-center justify-between gap-4 mb-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-700">{db.brandContextTitle || "Insta360 Brand Context"}</h3>
-                  <p className="text-xs text-slate-500 mt-1">{db.brandContextSubtitle || "Auto-enriched brand and site research"} • {selectedDataset?.website_url || 'https://www.insta360.com'}</p>
+                  <h3 className="text-sm font-semibold text-slate-700">
+                    {brandContext.brand_name ? `${brandContext.brand_name} Brand Context` : (db.brandContextTitle || "Brand Context")}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {db.brandContextSubtitle || "Auto-enriched brand and site research"}
+                    {selectedDataset?.website_url ? ` • ${selectedDataset.website_url}` : ""}
+                  </p>
                 </div>
                 {brandContext.has_promotion && (
                   <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] border border-blue-200">

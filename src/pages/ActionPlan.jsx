@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/components/LanguageContext";
 import { useTranslatedItems } from "@/components/dashboard/useTranslatedText";
+import { getActiveDatasetId, setActiveDatasetId } from "@/lib/activeDataset";
 
 const statusConfig = {
   todo: { label: "To Do", bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-300" },
@@ -43,30 +44,37 @@ export default function ActionPlan() {
   const { data: datasets = [] } = useQuery({
     queryKey: ['datasets'],
     queryFn: () => base44.entities.DataUpload.list('-created_date', 50),
-    refetchInterval: 3000,
+    refetchInterval: (query) => {
+      const data = query.state.data || [];
+      return data.some((d) => d.status === 'processing') ? 3000 : false;
+    },
   });
+
+  const activeDs = datasets.find((d) => d.id === selectedDataset);
+  const dsProcessing = !activeDs || activeDs.status === 'processing';
 
   const { data: sections = [] } = useQuery({
     queryKey: ['sections', selectedDataset],
     queryFn: () => base44.entities.ReportSection.filter({ dataset_id: selectedDataset }),
     enabled: !!selectedDataset,
-    refetchInterval: 3000,
+    refetchInterval: dsProcessing ? 3000 : false,
   });
 
   const { data: rawItems = [], isLoading } = useQuery({
     queryKey: ["actionItems", selectedDataset],
     queryFn: () => base44.entities.ActionItem.filter({ dataset_id: selectedDataset }),
     enabled: !!selectedDataset,
-    refetchInterval: 3000,
+    refetchInterval: dsProcessing ? 3000 : false,
   });
 
   const items = useTranslatedItems(rawItems, ["title", "notes"]);
 
-  // Auto-select latest completed dataset
+  // Auto-select active dataset or latest dataset
   useEffect(() => {
     if (datasets.length > 0 && !selectedDataset) {
-      const latest = datasets.find(d => d.status === 'completed') || datasets[0];
-      setSelectedDataset(latest?.id);
+      const activeId = getActiveDatasetId();
+      const preferred = datasets.find((dataset) => dataset.id === activeId) || datasets[0];
+      setSelectedDataset(preferred?.id);
     }
   }, [datasets, selectedDataset]);
 
@@ -192,7 +200,10 @@ Return a JSON array of action items.`,
           <p className="text-sm text-slate-500 mt-1">{ap.subtitle}</p>
         </div>
         <div className="flex gap-2">
-          <DatasetSelector value={selectedDataset} onChange={setSelectedDataset} />
+          <DatasetSelector value={selectedDataset} onChange={(nextValue) => {
+            setActiveDatasetId(nextValue);
+            setSelectedDataset(nextValue);
+          }} />
           <Button 
             variant="outline" 
             size="sm" 

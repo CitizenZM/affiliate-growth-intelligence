@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/components/LanguageContext";
+import { getActiveDatasetId, setActiveDatasetId } from "@/lib/activeDataset";
 
 export default function DatasetSelector({ value, onChange }) {
   const { t } = useLanguage();
@@ -33,26 +34,34 @@ export default function DatasetSelector({ value, onChange }) {
       const dataPromise = base44.entities.DataUpload.list('-created_date', 50);
       return Promise.race([dataPromise, timeoutPromise]);
     },
-    refetchInterval: 10000,
+    refetchInterval: (query) => {
+      const currentDatasets = query.state.data || [];
+      return currentDatasets.some((dataset) => dataset.status === "processing") ? 2000 : 10000;
+    },
     retry: 1,
   });
 
-  // Auto-select latest completed dataset
+  // Auto-select active dataset or latest dataset
   React.useEffect(() => {
-    if (datasets.length > 0) {
-      const latest = datasets.find(d => d.status === 'completed');
-      if (latest && latest.id !== value) {
-        onChange?.(latest.id);
-      } else if (!value && datasets[0]) {
-        onChange?.(datasets[0].id);
-      }
+    if (!datasets.length) return;
+    const activeId = getActiveDatasetId();
+    const activeDataset = datasets.find((dataset) => dataset.id === activeId);
+    const fallback = activeDataset || datasets[0];
+    if ((!value || !datasets.some((dataset) => dataset.id === value)) && fallback) {
+      onChange?.(fallback.id);
     }
-  }, [datasets]);
+  }, [datasets, value, onChange]);
 
   if (isLoading) return null;
 
   return (
-    <Select value={value || ''} onValueChange={onChange}>
+    <Select
+      value={value || ''}
+      onValueChange={(nextValue) => {
+        setActiveDatasetId(nextValue);
+        onChange?.(nextValue);
+      }}
+    >
       <SelectTrigger className="w-[280px]">
               <SelectValue placeholder={ds.placeholder} />
       </SelectTrigger>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation } from "@tanstack/react-query";
+import { setActiveDatasetId } from "@/lib/activeDataset";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,8 +16,24 @@ import FilePreview from "../components/input/FilePreview";
 import FieldMapper from "../components/input/FieldMapper";
 import DataCleaning from "../components/input/DataCleaning";
 import HistoryPanel from "../components/input/HistoryPanel";
+import { normalizeFieldMapping } from "../../lib/shared/csv";
 
 const STEPS = ["上传文件", "预览&映射", "数据清洗", "补充信息"];
+
+function normalizeWebsiteUrl(input) {
+  const trimmed = String(input || "").trim();
+  if (!trimmed) return "https://www.insta360.com";
+
+  try {
+    return new URL(trimmed).toString();
+  } catch {
+    try {
+      return new URL(`https://${trimmed.replace(/^\/+/, "")}`).toString();
+    } catch {
+      return "https://www.insta360.com";
+    }
+  }
+}
 
 export default function InputPage() {
   const [activeTab, setActiveTab] = useState("upload");
@@ -128,36 +145,7 @@ export default function InputPage() {
       setParsedData(data);
       setHeaders(parsedHeaders);
       
-      // Auto-detect field mapping
-      const autoMapping = {};
-      const knownFields = {
-        'publisher_id': ['publisher_id', 'publisherid', 'pub_id', 'id'],
-        'publisher_name': ['publisher_name', 'publishername', 'name', 'publisher', 'partner'],
-        'total_revenue': ['total_revenue', 'revenue', 'gmv', 'total_gmv', 'sales'],
-        'total_commission': ['total_commission', 'commission', 'payout', 'action cost', 'total cost'],
-        'clicks': ['clicks', 'num_clicks', 'click_count'],
-        'orders': ['orders', 'num_orders', 'transactions', 'conversions', 'actions'],
-        'approved_revenue': ['approved_revenue', 'approved', 'approved_sales'],
-        'pending_revenue': ['pending_revenue', 'pending'],
-        'declined_revenue': ['declined_revenue', 'declined', 'reversed_revenue'],
-        'publisher_type': ['publisher_type', 'type', 'category', 'publisher_category'],
-      };
-      
-      for (const header of parsedHeaders) {
-        for (const [targetField, possibleNames] of Object.entries(knownFields)) {
-          if (
-            header.toLowerCase() === 'total cost' &&
-            parsedHeaders.some((item) => item.toLowerCase() === 'action cost')
-          ) {
-            continue;
-          }
-          if (possibleNames.includes(header.toLowerCase())) {
-            autoMapping[header] = targetField;
-            break;
-          }
-        }
-      }
-      setFieldMapping(autoMapping);
+      setFieldMapping(normalizeFieldMapping(parsedHeaders));
       
       setUploadResult({ file_url: `local://${f.name}`, file_name: f.name });
       
@@ -208,12 +196,13 @@ export default function InputPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const normalizedWebsiteUrl = normalizeWebsiteUrl(formData.websiteUrl);
       const dataset = await base44.entities.DataUpload.create({
         file_url: uploadResult?.file_url,
         file_name: uploadResult?.file_name,
         source_rows: parsedData,
         source_headers: headers,
-        website_url: formData.websiteUrl || "https://www.insta360.com",
+        website_url: normalizedWebsiteUrl,
         platform: formData.platform || undefined,
         commission_model: formData.commission_model || undefined,
         market: formData.market || undefined,
@@ -221,24 +210,33 @@ export default function InputPage() {
         version_label: formData.version_label || `v${new Date().toISOString().split('T')[0]}`,
         field_mapping: fieldMapping,
         status: "processing",
+        processing_progress: 1,
+        processing_step: "Queued",
+      });
+      setActiveDatasetId(dataset.id);
+
+      void fetch("/api/functions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "processDataset",
+          payload: {
+            dataset_id: dataset.id,
+            file_url: uploadResult?.file_url,
+            field_mapping: fieldMapping,
+            cleaning_options: cleaningOptions,
+          },
+        }),
+      }).catch((error) => {
+        console.error("Background dataset processing failed to start:", error);
       });
 
-      const processResult = await base44.functions.invoke('processDataset', {
-        dataset_id: dataset.id,
-        file_url: uploadResult?.file_url,
-        field_mapping: fieldMapping,
-        cleaning_options: cleaningOptions,
-      });
-
-      return { dataset, processResult };
+      return { dataset };
     },
-    onSuccess: ({ processResult }) => {
-      const warnings = processResult?.data?.warnings || [];
-      if (warnings.length > 0) {
-        toast.warning(`分析已启动，存在 ${warnings.length} 条数据提醒`);
-      } else {
-        toast.success("数据已提交并开始分析");
-      }
+    onSuccess: () => {
+      toast.success("数据已提交并开始分析");
       setTimeout(() => {
         setStep(0);
         setFile(null);

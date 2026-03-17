@@ -3,6 +3,18 @@ import { base44 } from "@/api/base44Client";
 import { useLanguage } from "@/components/LanguageContext";
 
 const translationCache = {};
+const NON_TRANSLATABLE_KEYS = new Set([
+  "url",
+  "domain",
+  "linkPage",
+  "cluster_type",
+  "type",
+  "tone",
+  "section",
+  "confidence",
+  "research_mode",
+  "source_type",
+]);
 
 function isChinese(text) {
   return /[\u4e00-\u9fff]/.test(text);
@@ -88,6 +100,48 @@ async function translateBatchForLanguage(texts, language) {
   }, {});
 }
 
+function collectTranslatableStrings(value, path = []) {
+  if (!value) return [];
+
+  if (typeof value === "string") {
+    const key = path[path.length - 1];
+    if (NON_TRANSLATABLE_KEYS.has(key)) return [];
+    return [value];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => collectTranslatableStrings(item, path));
+  }
+
+  if (typeof value === "object") {
+    return Object.entries(value).flatMap(([key, nested]) => collectTranslatableStrings(nested, [...path, key]));
+  }
+
+  return [];
+}
+
+function applyTranslationsDeep(value, translations, path = []) {
+  if (!value) return value;
+
+  if (typeof value === "string") {
+    const key = path[path.length - 1];
+    if (NON_TRANSLATABLE_KEYS.has(key)) return value;
+    return translations[value] || value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => applyTranslationsDeep(item, translations, path));
+  }
+
+  if (typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nested]) => [key, applyTranslationsDeep(nested, translations, [...path, key])])
+    );
+  }
+
+  return value;
+}
+
 /**
  * Translates an array of items' text fields when language is 'en'.
  * Returns items with translated fields.
@@ -138,37 +192,19 @@ export function useTranslatedReportSections(sections = []) {
     let cancelled = false;
 
     async function doTranslate() {
-      const sourceTexts = sections.flatMap((section) => [
-        section.title,
-        section.conclusion,
-        section.content_md,
-        ...(section.key_findings || []).flatMap((finding) => {
-          if (typeof finding === "string") return [finding];
-          return [finding?.title, finding?.trigger, finding?.action, finding?.owner, finding?.deadline];
-        }),
-      ]).filter(Boolean);
+      const sourceTexts = sections.flatMap((section) => collectTranslatableStrings({
+        title: section.title,
+        conclusion: section.conclusion,
+        content_md: section.content_md,
+        key_findings: section.key_findings || [],
+        summary_cards: section.summary_cards || [],
+        content_blocks: section.content_blocks || [],
+        tables: section.tables || [],
+        citations: section.citations || [],
+      })).filter(Boolean);
 
       const translations = await translateBatchForLanguage(sourceTexts, language);
-      const result = sections.map((section) => ({
-        ...section,
-        title: translations[section.title] || section.title,
-        conclusion: translations[section.conclusion] || section.conclusion,
-        content_md: translations[section.content_md] || section.content_md,
-        key_findings: (section.key_findings || []).map((finding) => {
-          if (typeof finding === "string") {
-            return translations[finding] || finding;
-          }
-          return {
-            ...finding,
-            title: translations[finding.title] || finding.title,
-            trigger: translations[finding.trigger] || finding.trigger,
-            action: translations[finding.action] || finding.action,
-            owner: translations[finding.owner] || finding.owner,
-            deadline: translations[finding.deadline] || finding.deadline,
-            linkPage: finding.linkPage,
-          };
-        }),
-      }));
+      const result = sections.map((section) => applyTranslationsDeep(section, translations));
 
       if (!cancelled) setTranslated(result);
     }

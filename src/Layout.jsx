@@ -41,7 +41,10 @@ const LayoutContent = ({ children, currentPageName }) => {
   const { data: datasets } = useQuery({
     queryKey: ['datasets'],
     queryFn: () => base44.entities.DataUpload.list('-created_date', 1),
-    refetchInterval: 10000, // Refresh every 10s
+    refetchInterval: (query) => {
+      const data = query.state.data || [];
+      return data.some((d) => d.status === 'processing') ? 2000 : false;
+    },
   });
 
   useEffect(() => {

@@ -23,12 +23,23 @@ export default function FieldMapper({ headers, mapping, onChange }) {
   const requiredMapped = TARGET_FIELDS.filter(f => f.required).every(f => 
     Object.values(mapping).includes(f.key)
   );
+  const targetCounts = Object.values(mapping).reduce((acc, v) => {
+    if (v) acc[v] = (acc[v] || 0) + 1;
+    return acc;
+  }, {});
+  const hasDuplicates = Object.values(targetCounts).some(c => c > 1);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-700">字段映射</h3>
         <div className="flex items-center gap-2">
+          {hasDuplicates && (
+            <Badge className="bg-red-50 text-red-700 text-xs gap-1">
+              <AlertCircle className="w-3 h-3" />
+              存在重复映射
+            </Badge>
+          )}
           {requiredMapped ? (
             <Badge className="bg-emerald-50 text-emerald-700 text-xs gap-1">
               <CheckCircle2 className="w-3 h-3" />
@@ -54,8 +65,9 @@ export default function FieldMapper({ headers, mapping, onChange }) {
         <div className="space-y-2">
           {headers.map((header, idx) => {
             const targetField = TARGET_FIELDS.find(f => f.key === mapping[header]);
+            const isDuplicate = mapping[header] && (targetCounts[mapping[header]] || 0) > 1;
             return (
-              <div key={idx} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-slate-200">
+              <div key={idx} className={`flex items-center gap-3 bg-white rounded-lg p-3 border ${isDuplicate ? 'border-red-300 bg-red-50/30' : 'border-slate-200'}`}>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-700 truncate">{header}</p>
                   <p className="text-xs text-slate-400">源字段</p>
