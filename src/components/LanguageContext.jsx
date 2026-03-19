@@ -33,7 +33,7 @@ export const translations = {
       pending: "待处理", unknown: "未知",
     },
     overview: {
-      title: "Affiliate Growth Dashboard",
+      title: "Xark OS",
       subtitle: "一屏掌握渠道健康度与核心风险机会",
       coreKpis: "核心 KPI", top3Risks: "Top 3 风险", top3Opportunities: "Top 3 机会",
       quickLinks: "快速跳转", generateReport: "生成完整报告",
@@ -307,7 +307,7 @@ export const translations = {
       pending: "Pending", unknown: "Unknown",
     },
     overview: {
-      title: "Affiliate Growth Dashboard",
+      title: "Xark OS",
       subtitle: "Channel health & core risks at a glance",
       coreKpis: "Core KPIs", top3Risks: "Top 3 Risks", top3Opportunities: "Top 3 Opportunities",
       quickLinks: "Quick Links", generateReport: "Generate Full Report",

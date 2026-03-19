@@ -75,13 +75,13 @@ const LayoutContent = ({ children, currentPageName }) => {
         <div className={`h-[60px] flex items-center border-b border-white/[0.06] shrink-0 ${collapsed ? "justify-center px-3" : "justify-between px-4"}`}>
           {!collapsed ? (
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                 <BarChart3 className="w-3.5 h-3.5 text-white" />
               </div>
-              <span className="text-[13px] font-semibold tracking-tight text-white/90">AffiliateGrowth</span>
+              <span className="text-[13px] font-semibold tracking-tight text-white/90">Xark OS</span>
             </div>
           ) : (
-            <div className="w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
               <BarChart3 className="w-3.5 h-3.5 text-white" />
             </div>
           )}
