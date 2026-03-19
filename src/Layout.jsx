@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import {
   LayoutDashboard, Upload, Filter, PieChart, BarChart3,
   ScatterChart, ShieldCheck, Layers, ListChecks, CalendarRange,
-  FileText, Database, ChevronLeft, ChevronRight, Menu,
-  Download, Globe, Bell, Languages
+  FileText, Database, ChevronLeft, Menu,
+  Download, Globe, Languages, Search
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import ProgressIndicator from "@/components/layout/ProgressIndicator";
@@ -34,10 +33,8 @@ const LayoutContent = ({ children, currentPageName }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [latestDataset, setLatestDataset] = useState(null);
   const { language, toggleLanguage, t } = useLanguage();
-  
   const navItems = getNavItems(t);
 
-  // Fetch latest dataset
   const { data: datasets } = useQuery({
     queryKey: ['datasets'],
     queryFn: () => base44.entities.DataUpload.list('-created_date', 1),
@@ -48,199 +45,125 @@ const LayoutContent = ({ children, currentPageName }) => {
   });
 
   useEffect(() => {
-    if (datasets && datasets.length > 0) {
-      setLatestDataset(datasets[0]);
-    }
+    if (datasets && datasets.length > 0) setLatestDataset(datasets[0]);
   }, [datasets]);
 
-  // Subscribe to real-time updates
   useEffect(() => {
     if (!latestDataset?.id) return;
-    
     const unsubscribe = base44.entities.DataUpload.subscribe((event) => {
-      if (event.id === latestDataset.id && event.type === 'update') {
-        setLatestDataset(event.data);
-      }
+      if (event.id === latestDataset.id && event.type === 'update') setLatestDataset(event.data);
     });
-
     return unsubscribe;
   }, [latestDataset?.id]);
 
-  return (
-    <div className="min-h-screen bg-[#F8FAFC] flex">
-      <style>{`
-        :root {
-          --primary: #2563EB;
-          --primary-light: #DBEAFE;
-          --success: #16A34A;
-          --warning: #F59E0B;
-          --danger: #DC2626;
-          --text-dark: #0F172A;
-          --text-muted: #64748B;
-          --surface: #FFFFFF;
-          --border: #E2E8F0;
-        }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-        .nav-item { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .nav-item:hover { background: #F1F5F9; }
-        .nav-item.active { background: #EFF6FF; color: #2563EB; border-right: 3px solid #2563EB; }
-        .scrollbar-thin::-webkit-scrollbar { width: 4px; }
-        .scrollbar-thin::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 2px; }
-      `}</style>
+  const currentNav = navItems.find(n => n.page === currentPageName);
 
-      {/* Mobile overlay */}
+  return (
+    <div className="min-h-screen flex bg-[#f0f2f5]">
       {mobileOpen && (
-        <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`
         fixed lg:sticky top-0 left-0 h-screen z-50
-        bg-white border-r border-slate-200
+        bg-[#0f1729] text-white
         flex flex-col
-        transition-all duration-300 ease-in-out
-        ${collapsed ? "w-[72px]" : "w-[240px]"}
+        transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+        ${collapsed ? "w-[68px]" : "w-[232px]"}
         ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
-        {/* Logo area */}
-        <div className={`h-16 flex items-center border-b border-slate-100 px-4 ${collapsed ? "justify-center" : "justify-between"}`}>
-          {!collapsed && (
+        <div className={`h-[60px] flex items-center border-b border-white/[0.06] shrink-0 ${collapsed ? "justify-center px-3" : "justify-between px-4"}`}>
+          {!collapsed ? (
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                <BarChart3 className="w-4.5 h-4.5 text-white" />
+              <div className="w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center">
+                <BarChart3 className="w-3.5 h-3.5 text-white" />
               </div>
-              <div>
-                <span className="font-bold text-sm text-slate-900 tracking-tight">Affiliate</span>
-                <span className="font-light text-sm text-blue-600 ml-0.5">Growth</span>
-              </div>
+              <span className="text-[13px] font-semibold tracking-tight text-white/90">AffiliateGrowth</span>
+            </div>
+          ) : (
+            <div className="w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center">
+              <BarChart3 className="w-3.5 h-3.5 text-white" />
             </div>
           )}
-          {collapsed && (
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-              <BarChart3 className="w-4.5 h-4.5 text-white" />
-            </div>
-          )}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex w-6 h-6 items-center justify-center rounded-md hover:bg-slate-100 text-slate-400"
-          >
-            {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+          <button onClick={() => setCollapsed(!collapsed)} className="hidden lg:flex w-5 h-5 items-center justify-center rounded text-white/30 hover:text-white/60 transition">
+            <ChevronLeft className={`w-3 h-3 transition-transform ${collapsed ? "rotate-180" : ""}`} />
           </button>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto scrollbar-thin py-3 px-2">
+        <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5" style={{ scrollbarWidth: 'none' }}>
           {navItems.map((item) => {
             const isActive = currentPageName === item.page;
-            const showProgress = item.sectionId !== null && latestDataset;
-
             return (
               <Link
                 key={item.name}
                 to={createPageUrl(item.page)}
                 onClick={() => setMobileOpen(false)}
                 className={`
-                  nav-item flex items-center gap-3 rounded-lg mb-0.5
-                  ${collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"}
-                  ${isActive ? "active bg-blue-50 text-blue-600 font-medium" : "text-slate-500 hover:text-slate-700"}
+                  flex items-center gap-2.5 rounded-lg transition-all duration-150
+                  ${collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2"}
+                  ${isActive
+                    ? "bg-blue-500/15 text-blue-400"
+                    : "text-white/50 hover:text-white/80 hover:bg-white/[0.04]"
+                  }
                 `}
                 title={collapsed ? item.label : undefined}
               >
-                <item.icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
+                <item.icon className={`w-[17px] h-[17px] flex-shrink-0 ${isActive ? "text-blue-400" : ""}`} />
                 {!collapsed && (
-                  <span className="text-[13px] truncate flex-1">{item.label}</span>
-                )}
-                {!collapsed && showProgress && (
-                  <ProgressIndicator 
-                    sectionId={item.sectionId}
-                    sectionsReady={latestDataset?.sections_ready || []}
-                    status={latestDataset?.status}
-                    isProcessing={latestDataset?.status === 'processing'}
-                  />
+                  <>
+                    <span className={`text-[12.5px] truncate flex-1 ${isActive ? "font-semibold" : "font-medium"}`}>{item.label}</span>
+                    {item.sectionId !== null && latestDataset && (
+                      <ProgressIndicator
+                        sectionId={item.sectionId}
+                        sectionsReady={latestDataset?.sections_ready || []}
+                        status={latestDataset?.status}
+                        isProcessing={latestDataset?.status === 'processing'}
+                      />
+                    )}
+                  </>
                 )}
               </Link>
             );
           })}
         </nav>
 
-        {/* Bottom */}
         {!collapsed && (
-          <div className="p-3 border-t border-slate-100">
-            <div className="bg-slate-50 rounded-lg p-3">
-              <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">{t('layout.dataVersion')}</p>
-              <p className="text-xs text-slate-600 mt-1 font-medium">
+          <div className="p-3 border-t border-white/[0.06] shrink-0">
+            <div className="rounded-lg bg-white/[0.04] p-2.5">
+              <p className="text-[10px] text-white/30 font-medium uppercase tracking-wider">{t('layout.dataVersion')}</p>
+              <p className="text-[11px] text-white/70 mt-0.5 font-medium truncate">
                 {latestDataset?.version_label || 'Latest'}
               </p>
-              {latestDataset?.processing_warnings?.length > 0 && (
-                <p className="text-[11px] text-amber-600 mt-1">
-                  {latestDataset.processing_warnings[0]}
-                </p>
-              )}
             </div>
           </div>
         )}
       </aside>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
+        <header className="h-[60px] bg-white/80 backdrop-blur-md border-b border-slate-200/60 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30 shrink-0">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-2 rounded-lg hover:bg-slate-100"
-            >
+            <button onClick={() => setMobileOpen(true)} className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100 transition">
               <Menu className="w-5 h-5 text-slate-600" />
             </button>
-            <div className="hidden md:flex items-center gap-2 text-sm text-slate-500">
-              <span className="font-medium text-slate-800">
-                {navItems.find(n => n.page === currentPageName)?.label || currentPageName}
-              </span>
-            </div>
+            <h1 className="text-[15px] font-semibold text-slate-800 tracking-tight">{currentNav?.label || currentPageName}</h1>
             {latestDataset && (
-              <div className="flex items-center gap-3">
-                <ProcessingStatus 
-                  status={latestDataset.status}
-                  processingProgress={latestDataset.processing_progress}
-                  processingStep={latestDataset.processing_step}
-                  processingStartedAt={latestDataset.processing_started_at}
-                  processingCompletedAt={latestDataset.processing_completed_at}
-                />
-                {latestDataset.processing_warnings?.length > 0 && latestDataset.status === 'completed' && (
-                  <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-1">
-                    {t('shared.partialDataset')}
-                  </span>
-                )}
-              </div>
+              <ProcessingStatus
+                status={latestDataset.status}
+                processingProgress={latestDataset.processing_progress}
+                processingStep={latestDataset.processing_step}
+                processingStartedAt={latestDataset.processing_started_at}
+                processingCompletedAt={latestDataset.processing_completed_at}
+              />
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-slate-500 gap-1.5 text-xs hidden md:flex">
-              <Globe className="w-3.5 h-3.5" />
-              {t('layout.scrape')}
-            </Button>
-            <Button variant="ghost" size="sm" className="text-slate-500 gap-1.5 text-xs hidden md:flex">
-              <Download className="w-3.5 h-3.5" />
-              {t('common.export')}
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={toggleLanguage}
-              className="text-slate-500 gap-1.5 text-xs"
-            >
+          <div className="flex items-center gap-1">
+            <button onClick={toggleLanguage} className="h-8 px-3 rounded-lg text-[12px] font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition inline-flex items-center gap-1.5">
               <Languages className="w-3.5 h-3.5" />
               {language === 'zh' ? 'EN' : '中文'}
-            </Button>
-            <button className="relative p-2 rounded-lg hover:bg-slate-100">
-              <Bell className="w-4.5 h-4.5 text-slate-400" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
           </div>
         </header>
 
-        {/* Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
           {children}
         </main>
@@ -249,12 +172,10 @@ const LayoutContent = ({ children, currentPageName }) => {
   );
 };
 
-const Layout = ({ children, currentPageName }) => {
-  return (
-    <LanguageProvider>
-      <LayoutContent children={children} currentPageName={currentPageName} />
-    </LanguageProvider>
-  );
-};
+const Layout = ({ children, currentPageName }) => (
+  <LanguageProvider>
+    <LayoutContent children={children} currentPageName={currentPageName} />
+  </LanguageProvider>
+);
 
 export default Layout;
